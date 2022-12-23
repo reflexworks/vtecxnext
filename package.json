@@ -1,5 +1,5 @@
 {
-  "name": "vtecxnext",
+  "name": "@vtecx/vtecxnext",
   "version": "1.0.0",
   "description": "vte.cx Next.js api",
   "main": "dist/index.js",
