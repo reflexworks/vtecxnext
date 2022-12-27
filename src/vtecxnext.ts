@@ -189,16 +189,17 @@ export const hello = ():void => {
  * @param req request (for authentication)
  * @param res response (for authentication)
  * @param uri key
+ * @param targetService target service name (for service linkage)
  * @return entry
  */
- export const getEntry = async (req:IncomingMessage, res:ServerResponse, uri:string): Promise<any> => {
+ export const getEntry = async (req:IncomingMessage, res:ServerResponse, uri:string, targetService?:string): Promise<any> => {
   //console.log('[vtecxnext getEntry] start.')
   // キー入力値チェック
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}?e`
-  const response = await requestVtecx(method, url, req)
+  const response = await requestVtecx(method, url, req, null, targetService)
   //console.log(`[vtecxnext getEntry] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -215,14 +216,14 @@ export const hello = ():void => {
  * @param uri key and conditions
  * @return feed (entry array)
  */
- export const getFeed = async (req:IncomingMessage, res:ServerResponse, uri:string): Promise<any> => {
+ export const getFeed = async (req:IncomingMessage, res:ServerResponse, uri:string, targetService?:string): Promise<any> => {
   //console.log('[vtecxnext getFeed] start.')
   // キー入力値チェック
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}${uri.includes('?') ? '&' : '?'}f`
-  const response = await requestVtecx(method, url, req)
+  const response = await requestVtecx(method, url, req, null, targetService)
   //console.log(`[vtecxnext getFeed] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -239,14 +240,14 @@ export const hello = ():void => {
  * @param uri key and conditions
  * @return count
  */
- export const count = async (req:IncomingMessage, res:ServerResponse, uri:string): Promise<number|null> => {
+ export const count = async (req:IncomingMessage, res:ServerResponse, uri:string, targetService?:string): Promise<number|null> => {
   //console.log('[vtecxnext count] start.')
   // キー入力値チェック
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}${uri.includes('?') ? '&' : '?'}c`
-  const response = await requestVtecx(method, url, req)
+  const response = await requestVtecx(method, url, req, null, targetService)
   //console.log(`[vtecxnext count] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -265,7 +266,7 @@ export const hello = ():void => {
  * @param uri parent key if not specified in entry
  * @return registed entries
  */
-export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, uri?:string): Promise<any> => {
+export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, uri?:string, targetService?:string): Promise<any> => {
   //console.log(`[vtecxnext post] start. feed=${feed}`)
   // 入力チェック
   checkNotNull(feed, 'Feed')
@@ -276,7 +277,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'POST'
   const url = `/p${uri ? uri : '/'}?e`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  const response = await requestVtecx(method, url, req, JSON.stringify(feed), targetService)
   //console.log(`[vtecxnext post] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -295,7 +296,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
  * @param async Execute asynchronous if this param is true. Valid only if 'isbulk' is true.
  * @return updated entries
  */
- export const put = async (req:IncomingMessage, res:ServerResponse, feed:any, isbulk?:boolean, parallel?:boolean, async?:boolean): Promise<any> => {
+ export const put = async (req:IncomingMessage, res:ServerResponse, feed:any, isbulk?:boolean, parallel?:boolean, async?:boolean, targetService?:string): Promise<any> => {
   //console.log(`[vtecxnext put] start. feed=${feed}`)
   // 入力チェック
   checkNotNull(feed, 'Feed')
@@ -307,7 +308,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   }
   const url = `/p/?e${additionalParam}`
   //console.log(`[vtecxnext put] url=${url}`)
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  const response = await requestVtecx(method, url, req, JSON.stringify(feed), targetService)
   //console.log(`[vtecxnext put] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -324,7 +325,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
  * @param revision number of revision
  * @return true if successful
  */
- export const deleteEntry = async (req:IncomingMessage, res:ServerResponse, uri:string, revision?:number): Promise<boolean> => {
+ export const deleteEntry = async (req:IncomingMessage, res:ServerResponse, uri:string, revision?:number, targetService?:string): Promise<boolean> => {
   //console.log(`[vtecxnext deleteEntry] start. uri=${uri} revision=${revision}`)
   // キー入力値チェック
   checkUri(uri)
@@ -332,7 +333,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   const method = 'DELETE'
   const param = revision ? `&r=${revision}` : ''
   const url = `/p${uri}?e${param}`
-  const response = await requestVtecx(method, url, req)
+  const response = await requestVtecx(method, url, req, null, targetService)
   //console.log(`[vtecxnext deleteEntry] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -349,14 +350,14 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
  * @param async execute async
  * @return true if successful
  */
- export const deleteFolder = async (req:IncomingMessage, res:ServerResponse, uri:string, async?:boolean): Promise<boolean> => {
+ export const deleteFolder = async (req:IncomingMessage, res:ServerResponse, uri:string, async?:boolean, targetService?:string): Promise<boolean> => {
   //console.log(`[vtecxnext deleteFolder] start. uri=${uri} async=${async}`)
   // キー入力値チェック
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'DELETE'
   const url = `/p${uri}?_rf${async ? '&_async' : ''}`
-  const response = await requestVtecx(method, url, req)
+  const response = await requestVtecx(method, url, req, null, targetService)
   //console.log(`[vtecxnext deleteFolder] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -373,7 +374,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
  * @param num number to allocate
  * @return allocated numbers. comma separated if multiple.
  */
- export const allocids = async (req:IncomingMessage, res:ServerResponse, uri:string, num:number): Promise<string> => {
+ export const allocids = async (req:IncomingMessage, res:ServerResponse, uri:string, num:number, targetService?:string): Promise<string> => {
   //console.log('[vtecxnext allocids] start.')
   // キー入力値チェック
   checkUri(uri)
@@ -381,7 +382,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}?_allocids=${num}`
-  const response = await requestVtecx(method, url, req)
+  const response = await requestVtecx(method, url, req, null, targetService)
   //console.log(`[vtecxnext allocids] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -400,7 +401,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
  * @param num number to add
  * @return added number
  */
- export const addids = async (req:IncomingMessage, res:ServerResponse, uri:string, num:number): Promise<number|null> => {
+ export const addids = async (req:IncomingMessage, res:ServerResponse, uri:string, num:number, targetService?:string): Promise<number|null> => {
   //console.log('[vtecxnext addids] start.')
   // キー入力値チェック
   checkUri(uri)
@@ -408,7 +409,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/p${uri}?_addids=${num}`
-  const response = await requestVtecx(method, url, req)
+  const response = await requestVtecx(method, url, req, null, targetService)
   //console.log(`[vtecxnext addids] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -426,14 +427,14 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
  * @param uri key
  * @return added number
  */
- export const getids = async (req:IncomingMessage, res:ServerResponse, uri:string): Promise<number|null> => {
+ export const getids = async (req:IncomingMessage, res:ServerResponse, uri:string, targetService?:string): Promise<number|null> => {
   //console.log('[vtecxnext getids] start.')
   // キー入力値チェック
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}?_getids`
-  const response = await requestVtecx(method, url, req)
+  const response = await requestVtecx(method, url, req, null, targetService)
   //console.log(`[vtecxnext getids] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -452,7 +453,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
  * @param num number to set
  * @return set number
  */
- export const setids = async (req:IncomingMessage, res:ServerResponse, uri:string, num:number): Promise<number|null> => {
+ export const setids = async (req:IncomingMessage, res:ServerResponse, uri:string, num:number, targetService?:string): Promise<number|null> => {
   //console.log('[vtecxnext setids] start.')
   // キー入力値チェック
   checkUri(uri)
@@ -460,7 +461,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/p${uri}?_setids=${num}`
-  const response = await requestVtecx(method, url, req)
+  const response = await requestVtecx(method, url, req, null, targetService)
   //console.log(`[vtecxnext setids] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -860,14 +861,14 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
  * @param pagerange page range
  * @return feed Maximum number of pages in the specified page range, and total count.
  */
- export const pagination = async (req:IncomingMessage, res:ServerResponse, uri:string, pagerange:string): Promise<any> => {
+ export const pagination = async (req:IncomingMessage, res:ServerResponse, uri:string, pagerange:string, targetService?:string): Promise<any> => {
   //console.log('[vtecxnext pagination] start.')
   // キー入力値チェック
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}${uri.includes('?') ? '&' : '?'}_pagination=${pagerange}`
-  const response = await requestVtecx(method, url, req)
+  const response = await requestVtecx(method, url, req, null, targetService)
   //console.log(`[vtecxnext pagination] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -885,7 +886,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
  * @param num page number
  * @return feed Maximum number of pages in the specified page range, and total count.
  */
- export const getPage = async (req:IncomingMessage, res:ServerResponse, uri:string, num:number): Promise<any> => {
+ export const getPage = async (req:IncomingMessage, res:ServerResponse, uri:string, num:number, targetService?:string): Promise<any> => {
   //console.log('[vtecxnext getPage] start.')
   // 入力値チェック
   checkUri(uri)
@@ -893,7 +894,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}${uri.includes('?') ? '&' : '?'}n=${num}`
-  const response = await requestVtecx(method, url, req)
+  const response = await requestVtecx(method, url, req, null, targetService)
   //console.log(`[vtecxnext getPage] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1428,12 +1429,21 @@ export class VtecxNextError extends Error {
  * @param url サーブレットパス以降のURL
  * @param req リクエスト。認証情報設定に使用。
  * @param body リクエストデータ
+ * @param targetService 連携サービス名
  * @returns promise
  */
-const requestVtecx = async (method:string, url:string, req:IncomingMessage, body?:any): Promise<Response> => {
+const requestVtecx = async (method:string, url:string, req:IncomingMessage, body?:any, targetService?:string): Promise<Response> => {
   // cookieの値をvte.cxへのリクエストヘッダに設定
   const cookie = req.headers['cookie']
-  const headers = {'Cookie' : cookie}
+  const headers:any = {'Cookie' : cookie}
+  if (targetService) {
+    const servicekey = process.env[`SERVICEKEY_${targetService}`]
+    console.log(`[requestVtecx] targetService=${targetService} servicekey=${servicekey}`)
+    if (servicekey) {
+      headers['X-SERVICELINKAGE'] = targetService
+      headers['X-SERVICEKEY'] = servicekey
+    }
+  }
   return fetchVtecx(method, url, headers, body)
 }
 
@@ -1634,4 +1644,12 @@ const getLinks = (rel:string, hrefs:string[]): any => {
   }
   //console.log(`[vtecxnext getLinks] links=${JSON.stringify(links)}`)
   return links
+}
+
+const getServiceKey = (targetService:string) => {
+  if (!targetService) {
+    return null
+  }
+  // 環境変数
+
 }
