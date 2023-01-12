@@ -1669,6 +1669,238 @@ export const changepassByAdmin = async (req:IncomingMessage, res:ServerResponse,
   return await getJson(response)
 }
 
+/**
+ * change login user's account
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param feed entries (JSON)
+ * @return message feed
+ */
+export const changeaccount = async (req:IncomingMessage, res:ServerResponse, feed:any): Promise<any> => {
+  //console.log(`[vtecxnext changeaccount] start. feed=${feed}`)
+  // 入力チェック
+  checkNotNull(feed, 'Feed')
+  // vte.cxへリクエスト
+  const method = 'PUT'
+  const url = `/d/?_changeaccount`
+  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  //console.log(`[vtecxnext changeaccount] response. status=${response.status}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  return await getJson(response)
+}
+
+/**
+ * verify to change login user's account
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param verifyCode verify code
+ * @return message feed
+ */
+export const changeaccount_verify = async (req:IncomingMessage, res:ServerResponse, verifyCode:string): Promise<any> => {
+  //console.log(`[vtecxnext changeaccount_verify] start. verifyCode=${verifyCode}`)
+  // 入力値チェック
+  checkNotNull(verifyCode, 'verify code')
+  // vte.cxへリクエスト
+  const method = 'PUT'
+  const url = `/d/?_changeaccount_verify=${verifyCode}`
+  const response = await requestVtecx(method, url, req)
+  //console.log(`[vtecxnext changeaccount_verify] response=${response}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  return await getJson(response)
+}
+
+/**
+ * get user status
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param account account
+ * @return user status
+ */
+export const userstatus = async (req:IncomingMessage, res:ServerResponse, account?:string): Promise<any> => {
+  //console.log('[vtecxnext userstatus] start.')
+  // vte.cxへリクエスト
+  const method = 'GET'
+  const url = `/d/?_userstatus${account ? '=' + account : ''}`
+  const response = await requestVtecx(method, url, req)
+  //console.log(`[vtecxnext userstatus] response=${response}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  return await getJson(response)
+}
+
+/**
+ * revoke user
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param account account
+ * @return message feed
+ */
+export const revokeuser = async (req:IncomingMessage, res:ServerResponse, account:string): Promise<any> => {
+  //console.log('[vtecxnext revokeuser] start.')
+  // 入力値チェック
+  checkNotNull(account, 'account')
+  // vte.cxへリクエスト
+  const method = 'PUT'
+  const url = `/d/?_revokeuser=${account}`
+  const response = await requestVtecx(method, url, req)
+  //console.log(`[vtecxnext revokeuser] response=${response}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  return await getJson(response)
+}
+
+/**
+ * revoke users
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param feed entries (JSON)
+ * @return message feed
+ */
+export const revokeusers = async (req:IncomingMessage, res:ServerResponse, feed:any): Promise<any> => {
+  //console.log(`[vtecxnext revokeusers] start. feed=${feed}`)
+  // 入力チェック
+  checkNotNull(feed, 'Feed')
+  // vte.cxへリクエスト
+  const method = 'PUT'
+  const url = `/d/?_revokeuser`
+  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  //console.log(`[vtecxnext revokeusers] response. status=${response.status}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  return await getJson(response)
+}
+
+/**
+ * activate user
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param account account
+ * @return message feed
+ */
+export const activateuser = async (req:IncomingMessage, res:ServerResponse, account:string): Promise<any> => {
+  //console.log('[vtecxnext activateuser] start.')
+  // 入力値チェック
+  checkNotNull(account, 'account')
+  // vte.cxへリクエスト
+  const method = 'PUT'
+  const url = `/d/?_activateuser=${account}`
+  const response = await requestVtecx(method, url, req)
+  //console.log(`[vtecxnext activateuser] response=${response}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  return await getJson(response)
+}
+
+/**
+ * activate users
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param feed entries (JSON)
+ * @return message feed
+ */
+export const activateusers = async (req:IncomingMessage, res:ServerResponse, feed:any): Promise<any> => {
+  //console.log(`[vtecxnext activateusers] start. feed=${feed}`)
+  // 入力チェック
+  checkNotNull(feed, 'Feed')
+  // vte.cxへリクエスト
+  const method = 'PUT'
+  const url = `/d/?_activateuser`
+  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  //console.log(`[vtecxnext activateusers] response. status=${response.status}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  return await getJson(response)
+}
+
+/**
+ * cancel user.
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param account account
+ * @return message feed
+ */
+export const canceluser = async (req:IncomingMessage, res:ServerResponse): Promise<any> => {
+  //console.log('[vtecxnext canceluser] start.')
+  // vte.cxへリクエスト
+  const method = 'DELETE'
+  const url = `/d/?_canceluser`
+  const response = await requestVtecx(method, url, req)
+  //console.log(`[vtecxnext canceluser] response=${response}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  return await getJson(response)
+}
+
+/**
+ * delete user
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param account account
+ * @return message feed
+ */
+export const deleteuser = async (req:IncomingMessage, res:ServerResponse, account:string): Promise<any> => {
+  //console.log('[vtecxnext deleteuser] start.')
+  // 入力値チェック
+  checkNotNull(account, 'account')
+  // vte.cxへリクエスト
+  const method = 'DELETE'
+  const url = `/d/?_deleteuser=${account}`
+  const response = await requestVtecx(method, url, req)
+  //console.log(`[vtecxnext deleteuser] response=${response}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  return await getJson(response)
+}
+
+/**
+ * revoke users
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param feed entries (JSON)
+ * @return message feed
+ */
+export const deleteusers = async (req:IncomingMessage, res:ServerResponse, feed:any): Promise<any> => {
+  //console.log(`[vtecxnext deleteusers] start. feed=${feed}`)
+  // 入力チェック
+  checkNotNull(feed, 'Feed')
+  // vte.cxへリクエスト
+  const method = 'DELETE'
+  const url = `/d/?_deleteuser`
+  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  //console.log(`[vtecxnext deleteusers] response. status=${response.status}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  return await getJson(response)
+}
+
 
 
 //---------------------------------------------
