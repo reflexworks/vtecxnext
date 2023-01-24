@@ -1,5 +1,8 @@
 import { IncomingMessage, ServerResponse } from 'http'
-var SqlString = require('sqlstring')
+import SqlString from 'sqlstring'
+import formidable, { File } from 'formidable'
+import fs from 'fs'
+import type { Readable } from 'node:stream'
 
 /**
  * Hello world.
@@ -314,7 +317,7 @@ export const now = async (): Promise<string> => {
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}?e`
-  const response = await requestVtecx(method, url, req, null, targetService)
+  const response = await requestVtecx(method, url, req, null, null, targetService)
   //console.log(`[vtecxnext getEntry] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -338,7 +341,7 @@ export const now = async (): Promise<string> => {
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}${uri.includes('?') ? '&' : '?'}f`
-  const response = await requestVtecx(method, url, req, null, targetService)
+  const response = await requestVtecx(method, url, req, null, null, targetService)
   //console.log(`[vtecxnext getFeed] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -362,7 +365,7 @@ export const now = async (): Promise<string> => {
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}${uri.includes('?') ? '&' : '?'}c`
-  const response = await requestVtecx(method, url, req, null, targetService)
+  const response = await requestVtecx(method, url, req, null, null, targetService)
   //console.log(`[vtecxnext count] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -392,7 +395,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'POST'
   const url = `/p${uri ? uri : '/'}?e`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed), targetService)
+  const response = await requestVtecx(method, url, req, JSON.stringify(feed), null, targetService)
   //console.log(`[vtecxnext post] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -423,7 +426,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   }
   const url = `/p/?e${additionalParam}`
   //console.log(`[vtecxnext put] url=${url}`)
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed), targetService)
+  const response = await requestVtecx(method, url, req, JSON.stringify(feed), null, targetService)
   //console.log(`[vtecxnext put] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -448,7 +451,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   const method = 'DELETE'
   const param = revision ? `&r=${revision}` : ''
   const url = `/p${uri}?e${param}`
-  const response = await requestVtecx(method, url, req, null, targetService)
+  const response = await requestVtecx(method, url, req, null, null, targetService)
   //console.log(`[vtecxnext deleteEntry] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -472,7 +475,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'DELETE'
   const url = `/p${uri}?_rf${async ? '&_async' : ''}`
-  const response = await requestVtecx(method, url, req, null, targetService)
+  const response = await requestVtecx(method, url, req, null, null, targetService)
   //console.log(`[vtecxnext deleteFolder] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -497,7 +500,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}?_allocids=${num}`
-  const response = await requestVtecx(method, url, req, null, targetService)
+  const response = await requestVtecx(method, url, req, null, null, targetService)
   //console.log(`[vtecxnext allocids] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -524,7 +527,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/p${uri}?_addids=${num}`
-  const response = await requestVtecx(method, url, req, null, targetService)
+  const response = await requestVtecx(method, url, req, null, null, targetService)
   //console.log(`[vtecxnext addids] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -549,7 +552,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}?_getids`
-  const response = await requestVtecx(method, url, req, null, targetService)
+  const response = await requestVtecx(method, url, req, null, null, targetService)
   //console.log(`[vtecxnext getids] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -576,7 +579,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/p${uri}?_setids=${num}`
-  const response = await requestVtecx(method, url, req, null, targetService)
+  const response = await requestVtecx(method, url, req, null, null, targetService)
   //console.log(`[vtecxnext setids] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -983,7 +986,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}${uri.includes('?') ? '&' : '?'}_pagination=${pagerange}`
-  const response = await requestVtecx(method, url, req, null, targetService)
+  const response = await requestVtecx(method, url, req, null, null, targetService)
   //console.log(`[vtecxnext pagination] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1009,7 +1012,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}${uri.includes('?') ? '&' : '?'}n=${num}`
-  const response = await requestVtecx(method, url, req, null, targetService)
+  const response = await requestVtecx(method, url, req, null, null, targetService)
   //console.log(`[vtecxnext getPage] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1158,7 +1161,8 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
 }
 
 /**
- * Create PDF
+ * Create PDF.
+ * Writes a PDF to the response.
  * @param req request (for authentication)
  * @param res response
  * @param htmlTemplate PDF layout
@@ -1901,6 +1905,293 @@ export const deleteusers = async (req:IncomingMessage, res:ServerResponse, feed:
   return await getJson(response)
 }
 
+/**
+ * save files
+ * @param req request 
+ * @param res respose (for authentication)
+ * @param uri key
+ * @returns message
+ */
+export const savefiles = async (req:IncomingMessage, res:ServerResponse, uri:string): Promise<any> => {
+  //console.log(`[vtecxnext savefiles] start. uri=${uri}`)
+  // キー入力値チェック
+  checkUri(uri)
+
+  //for (const key in req.headers) {
+  //  //console.log(`[vtecxnext savefiles] [header] ${key}:${req.headers[key]}`)
+  //}
+
+  type FormidableFile = {
+    field: string
+    file: File
+  }
+
+  /* Get files using formidable */
+  const formidableFiles = await new Promise<FormidableFile[] | undefined>((resolve, reject) => {
+    const form = new formidable.IncomingForm()
+    const files: FormidableFile[] = []
+    form.on('file', (field, file) => {
+      const partFile:FormidableFile = {'file': file, 'field': field}
+      files.push(partFile)
+    })
+    form.on('end', () => resolve(files))
+    form.on('error', err => reject(err))
+    form.parse(req, () => {
+        //
+    })
+  }).catch(e => {
+    //console.log(e)
+    throw new VtecxNextError(400, `${e}`)
+  })
+
+  //console.log(`[vtecxnext savefiles] formidableFiles.length=${formidableFiles ? formidableFiles.length : 0}`)
+
+  if (!formidableFiles || formidableFiles.length < 1) {
+    throw new VtecxNextError(400, `An upload file is required.`)
+  }
+
+  let contentUris:string = ''
+  const promises:Promise<Response>[] = []
+  for (const formidableFile of formidableFiles) {
+    //console.log(`[vtecxnext savefiles] formidableFile field=${formidableFile.field} filepath=${formidableFile.file.filepath} size=${formidableFile.file.size} mymetype=${formidableFile.file.mimetype} newFilename=${formidableFile.file.newFilename} originalFilename=${formidableFile.file.originalFilename}`)
+    const fileBuffer:Buffer = fs.readFileSync(formidableFile.file.filepath)
+    fs.unlink(formidableFile.file.filepath, () => {
+      //console.log(`[vtecxnext savefiles] fs.unlink: ${formidableFile.file.filepath}`)
+    })
+
+    // vte.cxへリクエスト
+    const method = 'PUT'
+    const contentUri = `${uri}${uri.endsWith('/') ? '' : '/'}${formidableFile.field}`
+    const url = `/p${contentUri}?_content`
+    const headers = {'Content-Type' : formidableFile.file.mimetype}
+    //console.log(`[vtecxnext savefiles] request. url=${url}`)
+    const promiseResponse = requestVtecx(method, url, req, fileBuffer, headers)
+    promises.push(promiseResponse)
+    // 戻り値用
+    contentUris += `${contentUris ? ', ' : ''}${contentUri}`
+  }
+
+  const msg:string = ''
+  for (const promise of promises) {
+    const response = await promise
+    //console.log(`[vtecxnext savefiles] response. status=${response.status}`)
+    // vte.cxからのset-cookieを転記
+    setCookie(response, res)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+  }
+  return {'feed' : {'title' : contentUris}}
+
+  /* API RouteでFormDataを使用するとうまくいかなかった。(リクエスト先の受信データサイズが0になる。)
+  const formData = new FormData()
+  if (formidableFiles?.length) {
+    for (const formidableFile of formidableFiles) {
+      //console.log(`[vtecxnext savefiles] formidableFile field=${formidableFile.field} filepath=${formidableFile.file.filepath} size=${formidableFile.file.size} mymetype=${formidableFile.file.mimetype} newFilename=${formidableFile.file.newFilename} originalFilename=${formidableFile.file.originalFilename}`)
+      
+      const buffer:Buffer = fs.readFileSync(formidableFile.file.filepath)
+      const file:Blob = new Blob([buffer])
+
+      //console.log(`[vtecxnext savefiles] file.size=${file.size} file.length=${file.length} file.name=${file.name} file.type=${file.type}`)
+
+      formData.append(formidableFile.field, file, formidableFile.file.originalFilename ? formidableFile.file.originalFilename : undefined)
+    }
+  }
+
+  // vte.cxへリクエスト
+  const method = 'POST'
+  const url = `/p${uri}?_content`
+  //console.log(`[vtecxnext savefiles] request. url=${url}`)
+  const response = await requestVtecx(method, url, req, formData)
+  //console.log(`[vtecxnext savefiles] response. status=${response.status}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  return await getJson(response)
+  */
+
+}
+
+/**
+ * upload content
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param uri key
+ * @return message
+ */
+export const putcontent = async (req:IncomingMessage, res:ServerResponse, uri:string): Promise<any> => {
+  //console.log(`[vtecxnext putcontent] start. uri=${uri} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
+  // キー入力値チェック
+  checkUri(uri)
+  // vte.cxへリクエスト
+  const method = 'PUT'
+  const url = `/p${uri}?_content`
+  //const headers = {'Content-Type' : req.headers['content-type'], 'Content-Length' : req.headers['content-length']}
+  const headers = {'Content-Type' : req.headers['content-type']}
+  const buf = await buffer(req)
+  const response = await requestVtecx(method, url, req, buf, headers)
+  //console.log(`[vtecxnext putcontent] response. status=${response.status}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  return await getJson(response)
+}
+
+/**
+ * delete content
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param uri key
+ * @return message
+ */
+export const deletecontent = async (req:IncomingMessage, res:ServerResponse, uri:string): Promise<any> => {
+  //console.log(`[vtecxnext deletecontent] start. uri=${uri}`)
+  // キー入力値チェック
+  checkUri(uri)
+  // vte.cxへリクエスト
+  const method = 'DELETE'
+  const url = `/p${uri}?_content`
+  const response = await requestVtecx(method, url, req)
+  //console.log(`[vtecxnext deletecontent] response. status=${response.status}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  return await getJson(response)
+}
+
+/**
+ * get content.
+ * Writes a content to the response.
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param uri key
+ * @return true
+ */
+export const getcontent = async (req:IncomingMessage, res:ServerResponse, uri:string): Promise<boolean> => {
+  //console.log(`[vtecxnext getcontent] start. uri=${uri}`)
+  // キー入力値チェック
+  checkUri(uri)
+  // vte.cxへリクエスト
+  const method = 'GET'
+  const url = `/p${uri}?_content`
+  const response = await requestVtecx(method, url, req)
+  //console.log(`[vtecxnext getcontent] response. status=${response.status}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  //console.log(`[vtecxnext getcontent] setCookie end.`)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  //console.log(`[vtecxnext getcontent] checkVtecxResponse end.`)
+  // 戻り値
+  const resData = await response.blob()
+  setResponseHeaders(response, res)
+  res.statusCode = response.status
+  if (response.status !== 204) {
+    const csvData:ArrayBuffer = await resData.arrayBuffer()
+    res.end(new Uint8Array(csvData))
+  } else {
+    res.end()
+  }
+  return true
+}
+
+/**
+ * add acl
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param feed entries
+ * @return message
+ */
+ export const addacl = async (req:IncomingMessage, res:ServerResponse, feed:any): Promise<any> => {
+  //console.log('[vtecxnext addacl] start.')
+  // 入力チェック
+  checkNotNull(feed, 'Feed')
+  // vte.cxへリクエスト
+  const method = 'PUT'
+  const url = `/d/?_addacl`
+  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  //console.log(`[vtecxnext addacl] response=${response}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  return await getJson(response)
+}
+
+/**
+ * remove acl
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param feed entries
+ * @return message
+ */
+export const removeacl = async (req:IncomingMessage, res:ServerResponse, feed:any): Promise<any> => {
+  //console.log('[vtecxnext removeacl] start.')
+  // 入力チェック
+  checkNotNull(feed, 'Feed')
+  // vte.cxへリクエスト
+  const method = 'PUT'
+  const url = `/d/?_removeacl`
+  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  //console.log(`[vtecxnext removeacl] response=${response}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  return await getJson(response)
+}
+
+/**
+ * add alias
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param feed entries
+ * @return message
+ */
+export const addalias = async (req:IncomingMessage, res:ServerResponse, feed:any): Promise<any> => {
+  //console.log('[vtecxnext addalias] start.')
+  // 入力チェック
+  checkNotNull(feed, 'Feed')
+  // vte.cxへリクエスト
+  const method = 'PUT'
+  const url = `/d/?_addalias`
+  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  //console.log(`[vtecxnext addalias] response=${response}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  return await getJson(response)
+}
+
+/**
+ * remove alias
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param feed entries
+ * @return message
+ */
+export const removealias = async (req:IncomingMessage, res:ServerResponse, feed:any): Promise<any> => {
+  //console.log('[vtecxnext removealias] start.')
+  // 入力チェック
+  checkNotNull(feed, 'Feed')
+  // vte.cxへリクエスト
+  const method = 'PUT'
+  const url = `/d/?_removealias`
+  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  //console.log(`[vtecxnext removealias] response=${response}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  return await getJson(response)
+}
 
 
 //---------------------------------------------
@@ -1926,10 +2217,15 @@ export class VtecxNextError extends Error {
  * @param targetService 連携サービス名
  * @returns promise
  */
-const requestVtecx = async (method:string, url:string, req?:IncomingMessage, body?:any, targetService?:string): Promise<Response> => {
+const requestVtecx = async (method:string, url:string, req?:IncomingMessage, body?:any, additionalHeaders?:any, targetService?:string): Promise<Response> => {
   // cookieの値をvte.cxへのリクエストヘッダに設定
   const cookie = req ? req.headers['cookie'] : undefined
   const headers:any = cookie ? {'Cookie' : cookie} : {}
+  if (additionalHeaders) {
+    for (const key in additionalHeaders) {
+      headers[key] = additionalHeaders[key]
+    }
+  }
   if (targetService) {
     // サービス連携の場合
     const servicekey = process.env[`SERVICEKEY_${targetService}`]
@@ -2079,7 +2375,7 @@ const editBqTableNames = (tablenames:any): any => {
     return null
   }
   let result = ''
-  for (let key in tablenames) {
+  for (const key in tablenames) {
     const value = tablenames[key]
     //console.log(`[editBqTableNames] ${key}=${value}`)
     result = `${result ? result + ',' : ''}${key}:${value}` 
@@ -2139,4 +2435,17 @@ const getLinks = (rel:string, hrefs:string[]): any => {
   }
   //console.log(`[vtecxnext getLinks] links=${JSON.stringify(links)}`)
   return links
+}
+
+/**
+ * ストリームからバイナリデータを取得
+ * @param readable Readable
+ * @returns バイナリデータ
+ */
+const buffer = async (readable: Readable):Promise<Buffer> => {
+  const chunks = []
+  for await (const chunk of readable) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk)
+  }
+  return Buffer.concat(chunks)
 }
