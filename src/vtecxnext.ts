@@ -3,6 +3,7 @@ import SqlString from 'sqlstring'
 import formidable, { File } from 'formidable'
 import fs from 'fs'
 import type { Readable } from 'node:stream'
+import urlmodule, { URLSearchParams } from 'url'
 
 /**
  * Hello world.
@@ -62,7 +63,7 @@ export const hello = (): void => {
   const url = `/d/?_login${param}`
   const headers = {'X-WSSE' : `${wsse}`}
   const response = await fetchVtecx(method, url, headers)
-  const feed = await response.json()
+  //const feed = await response.json()
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
   // レスポンスのエラーチェック
@@ -2193,6 +2194,36 @@ export const removealias = async (req:IncomingMessage, res:ServerResponse, feed:
   return await getJson(response)
 }
 
+/**
+ * OAuth authorization request to LINE
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ */
+export const oauthLine = async (req:IncomingMessage, res:ServerResponse): Promise<boolean> => {
+  const provider = 'line'
+  const oauthUrl = 'https://access.line.me/oauth2/v2.1/authorize'
+  return await oauth(req, res, provider, oauthUrl)
+}
+
+/**
+ * OAuth authorization request to LINE
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ */
+export const oauthCallbackLine = async (req:IncomingMessage, res:ServerResponse): Promise<boolean> => {
+  // OAuthアクセストークン、OAuth情報を取得
+  const provider = 'line'
+  const accesstokenUrl = 'https://api.line.me/oauth2/v2.1/token'
+  const oauthInfo = await oauthGetAccesstoken(req, res, provider, accesstokenUrl)
+
+  // ユーザ識別情報を取得
+  const userInfo = await oauthGetUserinfoLine(req, res, oauthInfo)
+
+  // vte.cxユーザと連携・ログイン
+  await oauthLink(req, res, provider, userInfo)
+  return true
+}
+
 
 //---------------------------------------------
 /**
@@ -2214,10 +2245,12 @@ export class VtecxNextError extends Error {
  * @param url サーブレットパス以降のURL
  * @param req リクエスト。認証情報設定に使用。
  * @param body リクエストデータ
+ * @param additionalHeaders リクエストヘッダ追加分
  * @param targetService 連携サービス名
+ * @param mode RequestMode ("cors" | "navigate" | "no-cors" | "same-origin")
  * @returns promise
  */
-const requestVtecx = async (method:string, url:string, req?:IncomingMessage, body?:any, additionalHeaders?:any, targetService?:string): Promise<Response> => {
+const requestVtecx = async (method:string, url:string, req?:IncomingMessage, body?:any, additionalHeaders?:any, targetService?:string, mode?:RequestMode): Promise<Response> => {
   // cookieの値をvte.cxへのリクエストヘッダに設定
   const cookie = req ? req.headers['cookie'] : undefined
   const headers:any = cookie ? {'Cookie' : cookie} : {}
@@ -2235,7 +2268,7 @@ const requestVtecx = async (method:string, url:string, req?:IncomingMessage, bod
       headers['X-SERVICEKEY'] = servicekey
     }
   }
-  return fetchVtecx(method, url, headers, body)
+  return fetchVtecx(method, url, headers, body, mode)
 }
 
 /**
@@ -2244,9 +2277,10 @@ const requestVtecx = async (method:string, url:string, req?:IncomingMessage, bod
  * @param url サーブレットパス以降のURL
  * @param headers リクエストヘッダ。連想配列で指定。
  * @param body リクエストデータ
+ * @param mode RequestMode ("cors" | "navigate" | "no-cors" | "same-origin")
  * @returns promise
  */
-const fetchVtecx = async (method:string, url:string, headers:any, body?:any): Promise<Response> => {
+const fetchVtecx = async (method:string, url:string, headers:any, body?:any, mode?:RequestMode): Promise<Response> => {
   //console.log(`[vtecxnext fetchVtecx] url=${process.env.VTECX_URL}${url}`)
   headers['X-Requested-With'] = 'XMLHttpRequest'
   const apiKey = process.env.VTECX_APIKEY
@@ -2257,6 +2291,9 @@ const fetchVtecx = async (method:string, url:string, headers:any, body?:any): Pr
     body: body,
     method: method,
     headers: headers
+  }
+  if (mode) {
+    requestInit['mode'] = mode
   }
 
   return fetch(`${process.env.VTECX_URL}${url}`, requestInit)
@@ -2272,6 +2309,22 @@ const setCookie = (response:Response, res:ServerResponse): void => {
   if (setCookieVal === '' || setCookieVal) {
     res.setHeader('set-cookie', setCookieVal)
   }
+}
+
+/**
+ * vte.cxからのallow-originを、ブラウザへレスポンスする。
+ * @param response vte.cxからのレスポンス
+ * @param res ブラウザへのレスポンス
+ */
+const setAllowOrigin = (response:Response, res:ServerResponse): void => {
+  let val = response.headers.get('access-control-allow-origin')
+  val ? res.setHeader('access-control-allow-origin', val) : ''
+  val = response.headers.get('access-control-allow-methods')
+  val ? res.setHeader('access-control-allow-methods', val) : ''
+  val = response.headers.get('access-control-allow-headers')
+  val ? res.setHeader('access-control-allow-headers', val) : ''
+  val = response.headers.get('access-control-allow-credentials')
+  val ? res.setHeader('access-control-allow-credentials', val) : ''
 }
 
 /**
@@ -2448,4 +2501,231 @@ const buffer = async (readable: Readable):Promise<Buffer> => {
     chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk)
   }
   return Buffer.concat(chunks)
+}
+
+/**
+ * OAuth authorization request
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param provider OAuth provider name
+ * @param oauthUrl OAuth authorization request url
+ * @return true
+ */
+const oauth = async (req:IncomingMessage, res:ServerResponse, provider:string, oauthUrl:string): Promise<boolean> => {
+  //console.log(`[vtecxnext oauth] start. provider=${provider} oauthUrl=${oauthUrl}`)
+
+  // TODO reCAPTCHAを必須とすべき。
+
+  // 入力チェック
+  checkNotNull(provider, 'OAuth provider')
+  // vte.cxへリクエスト (state取得)
+  const method = 'POST'
+  const url = `/o/${provider}/create_state`
+  const response = await requestVtecx(method, url, req)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  const data = await getJson(response)
+  // state生成
+  if (!data || !data.feed || !data.feed.title) {
+    throw new VtecxNextError(401, `Could not generate state.`)
+  }
+  //console.log(`[vtecxnext oauth] response data=${JSON.stringify(data)}`)
+  const state = data.feed.title
+  const client_id = data.feed.subtitle
+  const redirect_uri = data.feed.link[0].___href
+  const origin = getOrigin(oauthUrl)
+  // 認可リクエストリダイレクトURL生成
+  //console.log(`[vtecxnext oauth] redirect_uri=${redirect_uri}`)
+  //console.log(`[vtecxnext oauth] origin=${origin}`)
+  const authorizationUrl = `${oauthUrl}?response_type=code&client_id=${client_id}&redirect_uri=${encodeURI(redirect_uri)}&state=${state}&scope=profile`
+  //console.log(`[vtecxnext oauth] authorizationUrl=${authorizationUrl}`)
+  res.setHeader('Location', authorizationUrl)
+  //res.setHeader('Access-Control-Allow-Origin', origin)
+  //res.setHeader('Access-Control-Allow-Method', 'GET, OPTIONS')
+  //console.log(`[vtecxnext oauth] response headers=${JSON.stringify(res.getHeaders())}`)
+  res.writeHead(302)
+  res.end()
+  return true
+}
+
+/**
+ * OAuth authorization request
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param provider OAuth provider name
+ * @param oauthUrl OAuth get accesstoken request url
+ * @return {'client_id', 'client_secret', 'redirect_uri', 'state', 'access_token'}
+ */
+const oauthGetAccesstoken = async (req:IncomingMessage, res:ServerResponse, provider:string, accesstokenUrl:string): Promise<any> => {
+  //console.log(`[vtecxnext oauthGetAccesstoken] start. provider=${provider} oauthUrl=${accesstokenUrl}`)
+
+  // stateチェック
+  const parseUrl = urlmodule.parse(req.url ? req.url : '', true)
+  const state = parseUrl.query.state
+  const code = parseUrl.query.code
+  if (!state) {
+    throw new VtecxNextError(401, `Could not get state on redirect.`)
+  }
+  if (!code) {
+    throw new VtecxNextError(401, `Could not get code on redirect.`)
+  }
+
+  // vte.cxへリクエスト (stateチェック)
+  const vtecxMethod = 'POST'
+  const vtecxUrl = `/o/${provider}/check_state?state=${state}`
+  //console.log(`[vtecxnext oauthGetAccesstoken] vtecxUrl=${vtecxUrl}`)
+  const vtecxResponse = await requestVtecx(vtecxMethod, vtecxUrl, req)
+  //console.log(`[vtecxnext oauthGetAccesstoken] check_state response status=${vtecxResponse.status}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(vtecxResponse, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(vtecxResponse)
+  // 戻り値
+  const data = await getJson(vtecxResponse)
+  // stateチェック
+  if (!data || !data.feed || !data.feed.title) {
+    throw new VtecxNextError(401, `Invalid state.`)
+  }
+  const client_id = data.feed.subtitle
+  const client_secret = data.feed.rights
+  const redirect_uri = data.feed.link[0].___href
+  //console.log(`[vtecxnext oauthGetAccesstoken] client_id=${client_id}`)
+  //console.log(`[vtecxnext oauthGetAccesstoken] client_secret=${client_secret}`)
+  //console.log(`[vtecxnext oauthGetAccesstoken] redirect_uri=${redirect_uri}`)
+  const encodeRedirect_uri = encodeURIComponent(redirect_uri)
+  //console.log(`[vtecxnext oauthGetAccesstoken] encode redirect_uri=${encodeRedirect_uri}`)
+
+  // アクセストークン取得URL生成
+  const accesstokenMethod = 'POST'
+  const accessTokenData = {
+    'grant_type': 'authorization_code',
+    'code': code,
+    'redirect_uri': redirect_uri,
+    'client_id': client_id,
+    'client_secret': client_secret
+  };
+  const accesstokenBody = createURLSearchParams(accessTokenData);
+
+  //const accesstokenBodyStr = `grant_type=authorization_code&code=${code}&redirect_uri=${encodeRedirect_uri}&client_id=${client_id}&client_secret=${client_secret}`
+  //console.log(`[vtecxnext oauthGetAccesstoken] accesstokenUrl=${accesstokenUrl}`)
+  //console.log(`[vtecxnext oauthGetAccesstoken] accesstokenBodyStr=${accesstokenBodyStr}`)
+  //const accesstokenBody = Buffer.from(accesstokenBodyStr, 'utf-8')
+  const requestInit:RequestInit = {
+    body: accesstokenBody,
+    method: accesstokenMethod
+  }
+  const accesstokenResponse = await fetch(accesstokenUrl, requestInit)
+  if (accesstokenResponse.status !== 200) {
+    const errorInfo = await accesstokenResponse.json()
+    //console.log(`[vtecxnext oauthGetAccesstoken] Get accesstoken failed. ${JSON.stringify(errorInfo)}`)
+    const errMsg = `${'error' in errorInfo ? errorInfo.error + '. ' : ''} ${'error_description' in errorInfo ? errorInfo.error_description : ''}`
+    throw new VtecxNextError(401, `Get accesstoken failed. status=${accesstokenResponse.status} ${errMsg}`)
+  }
+  const accesstokenInfo = await accesstokenResponse.json()
+  const access_token = accesstokenInfo.access_token
+  if (!access_token) {
+    throw new VtecxNextError(401, `Get accesstoken failed.`)
+  }
+
+  return {
+    'client_id' : client_id, 
+    'client_secret' : client_secret, 
+    'redirect_uri' : redirect_uri, 
+    'state' : state, 
+    'access_token' : access_token
+  }
+}
+
+/**
+ * OAuth get userinfo request
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param oauthInfo OAuth info {'client_id', 'client_secret', 'redirect_uri', 'state', 'access_token'}
+ * @return userinfo {'guid', 'nickname', 'state'}
+ */
+const oauthGetUserinfoLine = async (req:IncomingMessage, res:ServerResponse, oauthInfo:any): Promise<any> => {
+  //console.log(`[vtecxnext oauthGetUserinfoLine] start. oauthInfo=${JSON.stringify(oauthInfo)}`)
+
+  // LINEユーザ識別情報取得リクエスト
+  const url = 'https://api.line.me/v2/profile'
+  const method = 'GET'
+  const headers = {'Authorization' : `Bearer ${oauthInfo.access_token}`}
+  //console.log(`[vtecxnext oauthGetUserinfoLine] url=${url}`)
+  const requestInit:RequestInit = {
+    headers: headers,
+    method: method
+  }
+  const response = await fetch(url, requestInit)
+  if (response.status !== 200) {
+    throw new VtecxNextError(401, `Get user information failed. status=${response.status}`)
+  }
+  const userInfo = await response.json()
+  const guid = 'userId' in userInfo ? userInfo.userId : undefined
+  const nickname = 'displayName' in userInfo ? userInfo.displayName : ''
+  if (!guid) {
+    throw new VtecxNextError(401, `Get user information failed. `)
+  }
+  return {
+    'guid' : guid, 
+    'nickname' : nickname, 
+    'state' : oauthInfo.state
+  }
+}
+
+/**
+ * OAuth user link.
+ * @param req request
+ * @param res response
+ * @param provider OAuth provider name
+ * @param userInfo user info
+ * @return true if log in has been successful.
+ */
+const oauthLink = async (req:IncomingMessage, res:ServerResponse, provider:string, userInfo:any): Promise<boolean> => {
+  //console.log(`[vtecxnext oauthLink] start. userInfo=${JSON.stringify(userInfo)}`)
+  // OAuthリンク・ログイン
+  // reCAPTCHA tokenは任意
+  //const param = reCaptchaToken ? `&g-recaptcha-token=${reCaptchaToken}` : ''
+  const param = ''
+  const method = 'POST'
+  const url = `/o/${provider}/link?state=${userInfo.state}${param}`
+  const reqFeed = [{'title' : userInfo.guid, 'subtitle' : userInfo.nickname}]
+  const response = await fetchVtecx(method, url, {}, JSON.stringify(reqFeed))
+  const feed = await response.json()
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  let isLoggedin
+  if (response.status < 400) {
+    isLoggedin = true
+  } else {
+    isLoggedin = false
+  }
+  //console.log(`[vtecxnext oauthLink] end. status=${response.status} message=${feed.feed.title}`)
+  return isLoggedin
+}
+
+/**
+ * URLからOriginを取得
+ * @param oauthUrl URL
+ * @returns Origin
+ */
+const getOrigin = (oauthUrl:string):string => {
+  const tmpIdx = oauthUrl.indexOf('://') + 3
+  let idx = oauthUrl.indexOf('/', tmpIdx)
+  if (idx < 0) {
+    idx = oauthUrl.length
+  }
+  return oauthUrl.substring(0, idx)
+}
+
+/**
+ * URLSearchParamsを生成.
+ * @param data JSON
+ * @returns URLSearchParams
+ */
+const createURLSearchParams = (data:any) => {
+  const params = new URLSearchParams()
+  Object.keys(data).forEach(key => params.append(key, data[key]))
+  return params
 }
