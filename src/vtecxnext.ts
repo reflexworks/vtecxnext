@@ -2224,6 +2224,20 @@ export const oauthCallbackLine = async (req:IncomingMessage, res:ServerResponse)
   return true
 }
 
+/**
+ * get binary data from stream
+ * @param readable Readable
+ * @returns buffer
+ */
+export const buffer = async (readable: Readable):Promise<Buffer> => {
+  const chunks = []
+  for await (const chunk of readable) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk)
+  }
+  return Buffer.concat(chunks)
+}
+
+
 
 //---------------------------------------------
 /**
@@ -2491,19 +2505,6 @@ const getLinks = (rel:string, hrefs:string[]): any => {
 }
 
 /**
- * ストリームからバイナリデータを取得
- * @param readable Readable
- * @returns バイナリデータ
- */
-const buffer = async (readable: Readable):Promise<Buffer> => {
-  const chunks = []
-  for await (const chunk of readable) {
-    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk)
-  }
-  return Buffer.concat(chunks)
-}
-
-/**
  * OAuth authorization request
  * @param req request (for authentication)
  * @param res response (for authentication)
@@ -2534,7 +2535,7 @@ const oauth = async (req:IncomingMessage, res:ServerResponse, provider:string, o
   const state = data.feed.title
   const client_id = data.feed.subtitle
   const redirect_uri = data.feed.link[0].___href
-  const origin = getOrigin(oauthUrl)
+  //const origin = getOrigin(oauthUrl)
   // 認可リクエストリダイレクトURL生成
   //console.log(`[vtecxnext oauth] redirect_uri=${redirect_uri}`)
   //console.log(`[vtecxnext oauth] origin=${origin}`)
