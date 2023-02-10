@@ -62,7 +62,12 @@ export const hello = (): void => {
   const method = 'GET'
   const url = `/d/?_login${param}`
   const headers = {'X-WSSE' : `${wsse}`}
-  const response = await fetchVtecx(method, url, headers)
+  let response:Response
+  try {
+    response = await fetchVtecx(method, url, headers)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //const feed = await response.json()
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -93,7 +98,12 @@ export const loginWithRxid = async (req:IncomingMessage, res:ServerResponse, rxi
   // reCAPTCHA tokenは任意
   const method = 'GET'
   const url = `/d/?_login&_RXID=${rxid}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   const feed = await response.json()
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -120,7 +130,12 @@ export const loginWithRxid = async (req:IncomingMessage, res:ServerResponse, rxi
   // vte.cxへリクエスト
   const method = 'GET'
   const url = '/d/?_logout'
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext logout] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -142,7 +157,12 @@ export const now = async (): Promise<string> => {
   // vte.cxへリクエスト
   const method = 'GET'
   const url = '/d/?_now'
-  const response = await requestVtecx(method, url)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext now] response=${response}`)
   // レスポンスのエラーチェック
   await checkVtecxResponse(response)
@@ -162,7 +182,12 @@ export const now = async (): Promise<string> => {
   // vte.cxへリクエスト
   const method = 'GET'
   const url = '/d/?_uid'
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext uid] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -184,7 +209,12 @@ export const now = async (): Promise<string> => {
   // vte.cxへリクエスト
   const method = 'GET'
   const url = '/d/?_account'
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext account] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -206,7 +236,12 @@ export const now = async (): Promise<string> => {
   // vte.cxへリクエスト
   const method = 'GET'
   const url = '/d/?_whoami'
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext whoami] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -243,7 +278,12 @@ export const now = async (): Promise<string> => {
   // vte.cxへリクエスト
   const method = 'GET'
   const url = '/d/?_service'
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext service] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -265,7 +305,12 @@ export const now = async (): Promise<string> => {
   // vte.cxへリクエスト
   const method = 'GET'
   const url = '/d/?_getrxid'
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext uid] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -286,14 +331,18 @@ export const now = async (): Promise<string> => {
  * @return true if successful
  */
   export const log = async (req:IncomingMessage, res:ServerResponse, message:string, title?:string, subtitle?:string): Promise<boolean> => {
-  const logTitle = title ? title : 'JavaScript'
-  const logSubtitle = subtitle ? subtitle : 'INFO'
+  const logTitle = title ?? 'JavaScript'
+  const logSubtitle = subtitle ?? 'INFO'
   const feed = [{'title' : logTitle, 'subtitle' : logSubtitle, 'summary' : message}]
 
   const method = 'POST'
   const url = `/p/?_log`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
-
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext log] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -318,7 +367,12 @@ export const now = async (): Promise<string> => {
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}?e`
-  const response = await requestVtecx(method, url, req, null, null, targetService)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, null, null, targetService)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext getEntry] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -342,7 +396,12 @@ export const now = async (): Promise<string> => {
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}${uri.includes('?') ? '&' : '?'}f`
-  const response = await requestVtecx(method, url, req, null, null, targetService)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, null, null, targetService)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext getFeed] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -366,7 +425,12 @@ export const now = async (): Promise<string> => {
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}${uri.includes('?') ? '&' : '?'}c`
-  const response = await requestVtecx(method, url, req, null, null, targetService)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, null, null, targetService)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext count] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -396,7 +460,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'POST'
   const url = `/p${uri ? uri : '/'}?e`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed), null, targetService)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed), null, targetService)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext post] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -427,7 +496,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   }
   const url = `/p/?e${additionalParam}`
   //console.log(`[vtecxnext put] url=${url}`)
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed), null, targetService)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed), null, targetService)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext put] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -452,7 +526,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   const method = 'DELETE'
   const param = revision ? `&r=${revision}` : ''
   const url = `/p${uri}?e${param}`
-  const response = await requestVtecx(method, url, req, null, null, targetService)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, null, null, targetService)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext deleteEntry] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -476,7 +555,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'DELETE'
   const url = `/p${uri}?_rf${async ? '&_async' : ''}`
-  const response = await requestVtecx(method, url, req, null, null, targetService)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, null, null, targetService)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext deleteFolder] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -501,7 +585,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}?_allocids=${num}`
-  const response = await requestVtecx(method, url, req, null, null, targetService)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, null, null, targetService)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext allocids] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -528,7 +617,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/p${uri}?_addids=${num}`
-  const response = await requestVtecx(method, url, req, null, null, targetService)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, null, null, targetService)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext addids] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -553,7 +647,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}?_getids`
-  const response = await requestVtecx(method, url, req, null, null, targetService)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, null, null, targetService)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext getids] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -580,7 +679,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/p${uri}?_setids=${num}`
-  const response = await requestVtecx(method, url, req, null, null, targetService)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, null, null, targetService)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext setids] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -608,7 +712,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   const method = 'PUT'
   const url = `/p${uri}?_rangeids`
   const feed = {feed : {'title' : range}}
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext rangeids] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -633,7 +742,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}?_rangeids`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext getrangeids] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -660,7 +774,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/p/?_sessionfeed=${name}`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext setSessionFeed] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -686,7 +805,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   const method = 'PUT'
   const url = `/p/?_sessionentry=${name}`
   const feed = {feed : {'entry' : entry}}
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext setSessionEntry] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -712,7 +836,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   const method = 'PUT'
   const url = `/p/?_sessionstring=${name}`
   const feed = {feed : {'title' : str}}
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext setSessionString] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -738,7 +867,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   const method = 'PUT'
   const url = `/p/?_sessionlong=${name}`
   const feed = {feed : {'title' : String(num)}}
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext setSessionLong] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -763,7 +897,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/p/?_sessionincr=${name}&_num=${num}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext incrementSession] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -788,7 +927,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'DELETE'
   const url = `/p/?_sessionfeed=${name}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext deleteSessionFeed] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -811,7 +955,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'DELETE'
   const url = `/p/?_sessionentry=${name}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext deleteSessionEntry] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -834,7 +983,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'DELETE'
   const url = `/p/?_sessionstring=${name}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext deleteSessionString] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -857,7 +1011,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'DELETE'
   const url = `/p/?_sessionlong=${name}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext deleteSessionLong] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -880,7 +1039,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p/?_sessionfeed=${name}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext getSessionFeed] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -904,7 +1068,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p/?_sessionentry=${name}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext getSessionEntry] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -928,7 +1097,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p/?_sessionstring=${name}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext getSessionString] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -957,7 +1131,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p/?_sessionlong=${name}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext getSessionLong] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -987,7 +1166,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}${uri.includes('?') ? '&' : '?'}_pagination=${pagerange}`
-  const response = await requestVtecx(method, url, req, null, null, targetService)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, null, null, targetService)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext pagination] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1013,7 +1197,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}${uri.includes('?') ? '&' : '?'}n=${num}`
-  const response = await requestVtecx(method, url, req, null, null, targetService)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, null, null, targetService)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext getPage] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1046,7 +1235,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'POST'
   const url = `/p/?_bq${async ? '&_async' : ''}`
-  const response = await requestVtecx(method, url, req, JSON.stringify(reqFeed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(reqFeed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext postBQ] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1087,7 +1281,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'DELETE'
   const url = `/p/?_bq${async ? '&_async' : ''}`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext deleteBQ] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1114,7 +1313,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/p/?_querybq`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext getBQ] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1145,7 +1349,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/p/?_querybq&_csv${filename ? '=' + filename : ''}`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext getBQCsv] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1177,7 +1386,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/p/?_pdf${filename ? '=' + filename : ''}`
-  const response = await requestVtecx(method, url, req, htmlTemplate)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, htmlTemplate)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext toPdf] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1208,7 +1422,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/p${uri}?_signature${revision ? '&r=' + revision : ''}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext putSignature] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1232,7 +1451,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/p/?_signature`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext putSignatures] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1257,7 +1481,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'DELETE'
   const url = `/p${uri}?_signature${revision ? '&r=' + revision : ''}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext deleteSignature] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1280,7 +1509,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}?_signature`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext checkSignature] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1335,7 +1569,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'POST'
   const url = `/p/?_sendmail`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext sendMail] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1398,7 +1637,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'POST'
   const url = `/p/?_pushnotification`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext pushNotification] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1421,7 +1665,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/p${channel}?_mqstatus=${flag ? 'true' : 'false'}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext setMessageQueueStatus] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1446,7 +1695,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'POST'
   const url = `/p${channel}?_mq`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext setMessageQueue] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1469,7 +1723,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${channel}?_mq`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext getMessageQueue] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1495,7 +1754,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/p${group}?_joingroup&_selfid=${selfid}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext joinGroup] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1519,7 +1783,12 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'DELETE'
   const url = `/p${group}?_leavegroup`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext leaveGroup] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1544,7 +1813,12 @@ export const noGroupMember = async (req:IncomingMessage, res:ServerResponse, uri
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/d${uri}?_no_group_member`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext noGroupMember] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1570,7 +1844,12 @@ export const adduser = async (req:IncomingMessage, res:ServerResponse, feed:any,
   const method = 'POST'
   const param = reCaptchaToken ? `&g-recaptcha-token=${reCaptchaToken}` : ''
   const url = `/d/?_adduser${param}`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext adduser] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1594,7 +1873,12 @@ export const adduserByAdmin = async (req:IncomingMessage, res:ServerResponse, fe
   // vte.cxへリクエスト
   const method = 'POST'
   const url = `/d/?_adduserByAdmin`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext adduserByAdmin] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1619,7 +1903,12 @@ export const passreset = async (req:IncomingMessage, res:ServerResponse, feed:an
   const method = 'POST'
   const param = reCaptchaToken ? `&g-recaptcha-token=${reCaptchaToken}` : ''
   const url = `/d/?_passreset${param}`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext passreset] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1642,7 +1931,12 @@ export const changepass = async (req:IncomingMessage, res:ServerResponse, feed:a
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/d/?_changephash`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext changepass] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1665,7 +1959,12 @@ export const changepassByAdmin = async (req:IncomingMessage, res:ServerResponse,
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/d/?_changephashByAdmin`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext changepassByAdmin] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1688,7 +1987,12 @@ export const changeaccount = async (req:IncomingMessage, res:ServerResponse, fee
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/d/?_changeaccount`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext changeaccount] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1711,7 +2015,12 @@ export const changeaccount_verify = async (req:IncomingMessage, res:ServerRespon
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/d/?_changeaccount_verify=${verifyCode}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext changeaccount_verify] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1733,7 +2042,12 @@ export const userstatus = async (req:IncomingMessage, res:ServerResponse, accoun
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/d/?_userstatus${account ? '=' + account : ''}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext userstatus] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1757,7 +2071,12 @@ export const revokeuser = async (req:IncomingMessage, res:ServerResponse, accoun
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/d/?_revokeuser=${account}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext revokeuser] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1781,7 +2100,12 @@ export const revokeusers = async (req:IncomingMessage, res:ServerResponse, feed:
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/d/?_revokeuser`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext revokeusers] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1804,7 +2128,12 @@ export const activateuser = async (req:IncomingMessage, res:ServerResponse, acco
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/d/?_activateuser=${account}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext activateuser] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1828,7 +2157,12 @@ export const activateusers = async (req:IncomingMessage, res:ServerResponse, fee
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/d/?_activateuser`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext activateusers] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1849,7 +2183,12 @@ export const canceluser = async (req:IncomingMessage, res:ServerResponse): Promi
   // vte.cxへリクエスト
   const method = 'DELETE'
   const url = `/d/?_canceluser`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext canceluser] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1873,7 +2212,12 @@ export const deleteuser = async (req:IncomingMessage, res:ServerResponse, accoun
   // vte.cxへリクエスト
   const method = 'DELETE'
   const url = `/d/?_deleteuser=${account}`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext deleteuser] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -1897,7 +2241,12 @@ export const deleteusers = async (req:IncomingMessage, res:ServerResponse, feed:
   // vte.cxへリクエスト
   const method = 'DELETE'
   const url = `/d/?_deleteuser`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext deleteusers] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -2030,7 +2379,12 @@ export const putcontent = async (req:IncomingMessage, res:ServerResponse, uri:st
   //const headers = {'Content-Type' : req.headers['content-type'], 'Content-Length' : req.headers['content-length']}
   const headers = {'Content-Type' : req.headers['content-type']}
   const buf = await buffer(req)
-  const response = await requestVtecx(method, url, req, buf, headers)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, buf, headers)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext putcontent] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -2053,7 +2407,12 @@ export const deletecontent = async (req:IncomingMessage, res:ServerResponse, uri
   // vte.cxへリクエスト
   const method = 'DELETE'
   const url = `/p${uri}?_content`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext deletecontent] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -2077,7 +2436,12 @@ export const getcontent = async (req:IncomingMessage, res:ServerResponse, uri:st
   // vte.cxへリクエスト
   const method = 'GET'
   const url = `/p${uri}?_content`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext getcontent] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -2112,7 +2476,12 @@ export const getcontent = async (req:IncomingMessage, res:ServerResponse, uri:st
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/d/?_addacl`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext addacl] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -2136,7 +2505,12 @@ export const removeacl = async (req:IncomingMessage, res:ServerResponse, feed:an
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/d/?_removeacl`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext removeacl] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -2160,7 +2534,12 @@ export const addalias = async (req:IncomingMessage, res:ServerResponse, feed:any
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/d/?_addalias`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext addalias] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -2184,7 +2563,12 @@ export const removealias = async (req:IncomingMessage, res:ServerResponse, feed:
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `/d/?_removealias`
-  const response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext removealias] response=${response}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
@@ -2252,6 +2636,20 @@ export class VtecxNextError extends Error {
   }
 }
 
+/**
+ * Fetch Error
+ */
+export class FetchError extends VtecxNextError {
+  //url:string
+  //requestInit:RequestInit
+  constructor(message:string) {
+    super(500, message)
+    this.name = 'FetchError'
+    //this.url = url
+    //this.requestInit = requestInit
+  }
+}
+
 //---------------------------------------------
 /**
  * vte.cxへリクエスト
@@ -2309,8 +2707,34 @@ const fetchVtecx = async (method:string, url:string, headers:any, body?:any, mod
   if (mode) {
     requestInit['mode'] = mode
   }
+  
+  return fetchProc(`${VTECX_URL}${url}`, requestInit)
+}
 
-  return fetch(`${process.env.VTECX_URL}${url}`, requestInit)
+/** vte.cx URL */
+const VTECX_URL = process.env.VTECX_URL ?? ''
+
+const newFetchError = (e:any, isVtecx:boolean):FetchError => {
+  let errMsg:string
+  if (e instanceof Error) {
+    const errName = isVtecx ? 'VtecxFetchError' : 'FetchError'
+    errMsg = `${errName}: ${e.message}`
+  } else {
+    errMsg = `Unexpected error.`
+  }
+  console.log(`[vtecxnext fetchProc] errMsg = ${errMsg}`)
+  return new FetchError(errMsg)
+}
+
+/**
+ * fetch処理。try-catchを行う。
+ * @param url URL
+ * @param requestInit RequestInit
+ * @returns Promise
+ */
+const fetchProc = (url:string, requestInit:RequestInit): Promise<Response> => {
+  //console.log(`[vtecxnext fetchProc] url=${url}`)
+  return fetch(url, requestInit)
 }
 
 /**
@@ -2377,7 +2801,7 @@ const checkVtecxResponse = async (response:Response): Promise<void> => {
     if (data && data.feed) {
       message = data.feed.title
     }
-    message = message ? message : `status=${response.status}`
+    message = message ?? `status=${response.status}`
     throw new VtecxNextError(response.status, message)
   }
 }
@@ -2391,7 +2815,7 @@ const checkVtecxResponse = async (response:Response): Promise<void> => {
  */
 const checkNotNull = (val:any, name?:string): void => {
   if (!val) {
-    throw new VtecxNextError(400, `${name ? name : 'Key'} is required.`)
+    throw new VtecxNextError(400, `${name ?? 'Key'} is required.`)
   }
 }
 
@@ -2406,7 +2830,7 @@ const checkNotNull = (val:any, name?:string): void => {
  const checkUri = (str:string, name?:string): void => {
   checkNotNull(str, name)
   if (!str.startsWith('/')) {
-    throw new VtecxNextError(400, `${name ? name : 'Key'} must start with a slash.`)
+    throw new VtecxNextError(400, `${name ?? 'Key'} must start with a slash.`)
   }
 }
 
@@ -2423,11 +2847,13 @@ const getJson = async (response:Response): Promise<any> => {
   try {
     return await response.json()
   } catch (e) {
+    let errMsg:string
     if (e instanceof Error) {
-      const error:Error = e
-      //console.log(`[getJson] Error occured. ${error.name}: ${error.message}`)
+      errMsg = `JsonError: ${e.message}`
+    } else {
+      errMsg = `JsonError: unexpected error`
     }
-    return null
+    throw new VtecxNextError(500, errMsg)
   }
 }
 
@@ -2522,7 +2948,12 @@ const oauth = async (req:IncomingMessage, res:ServerResponse, provider:string, o
   // vte.cxへリクエスト (state取得)
   const method = 'POST'
   const url = `/o/${provider}/create_state`
-  const response = await requestVtecx(method, url, req)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   // レスポンスのエラーチェック
   await checkVtecxResponse(response)
   // 戻り値
@@ -2562,7 +2993,7 @@ const oauthGetAccesstoken = async (req:IncomingMessage, res:ServerResponse, prov
   //console.log(`[vtecxnext oauthGetAccesstoken] start. provider=${provider} oauthUrl=${accesstokenUrl}`)
 
   // stateチェック
-  const parseUrl = urlmodule.parse(req.url ? req.url : '', true)
+  const parseUrl = urlmodule.parse(req.url ?? '', true)
   const state = parseUrl.query.state
   const code = parseUrl.query.code
   if (!state) {
@@ -2576,7 +3007,12 @@ const oauthGetAccesstoken = async (req:IncomingMessage, res:ServerResponse, prov
   const vtecxMethod = 'POST'
   const vtecxUrl = `/o/${provider}/check_state?state=${state}`
   //console.log(`[vtecxnext oauthGetAccesstoken] vtecxUrl=${vtecxUrl}`)
-  const vtecxResponse = await requestVtecx(vtecxMethod, vtecxUrl, req)
+  let vtecxResponse:Response
+  try {
+    vtecxResponse = await requestVtecx(vtecxMethod, vtecxUrl, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   //console.log(`[vtecxnext oauthGetAccesstoken] check_state response status=${vtecxResponse.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(vtecxResponse, res)
@@ -2605,7 +3041,7 @@ const oauthGetAccesstoken = async (req:IncomingMessage, res:ServerResponse, prov
     'redirect_uri': redirect_uri,
     'client_id': client_id,
     'client_secret': client_secret
-  };
+  }
   const accesstokenBody = createURLSearchParams(accessTokenData);
 
   //const accesstokenBodyStr = `grant_type=authorization_code&code=${code}&redirect_uri=${encodeRedirect_uri}&client_id=${client_id}&client_secret=${client_secret}`
@@ -2616,7 +3052,13 @@ const oauthGetAccesstoken = async (req:IncomingMessage, res:ServerResponse, prov
     body: accesstokenBody,
     method: accesstokenMethod
   }
-  const accesstokenResponse = await fetch(accesstokenUrl, requestInit)
+
+  let accesstokenResponse:Response
+  try {
+    accesstokenResponse = await fetchProc(accesstokenUrl, requestInit)
+  } catch (e) {
+    throw newFetchError(e, false)
+  }
   if (accesstokenResponse.status !== 200) {
     const errorInfo = await accesstokenResponse.json()
     //console.log(`[vtecxnext oauthGetAccesstoken] Get accesstoken failed. ${JSON.stringify(errorInfo)}`)
@@ -2657,7 +3099,13 @@ const oauthGetUserinfoLine = async (req:IncomingMessage, res:ServerResponse, oau
     headers: headers,
     method: method
   }
-  const response = await fetch(url, requestInit)
+  let response:Response
+  try {
+    response = await fetchProc(url, requestInit)
+  } catch (e) {
+    throw newFetchError(e, false)
+  }
+
   if (response.status !== 200) {
     throw new VtecxNextError(401, `Get user information failed. status=${response.status}`)
   }
@@ -2691,7 +3139,12 @@ const oauthLink = async (req:IncomingMessage, res:ServerResponse, provider:strin
   const method = 'POST'
   const url = `/o/${provider}/link?state=${userInfo.state}${param}`
   const reqFeed = [{'title' : userInfo.guid, 'subtitle' : userInfo.nickname}]
-  const response = await fetchVtecx(method, url, {}, JSON.stringify(reqFeed))
+  let response:Response
+  try {
+    response = await fetchVtecx(method, url, {}, JSON.stringify(reqFeed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
   const feed = await response.json()
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
