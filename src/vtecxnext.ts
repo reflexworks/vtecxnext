@@ -1829,6 +1829,73 @@ export const noGroupMember = async (req:IncomingMessage, res:ServerResponse, uri
 }
 
 /**
+ * Get groups
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param uri group key
+ * @return feed (entry array)
+ */
+export const getGroups = async (req:IncomingMessage, res:ServerResponse): Promise<any> => {
+  //console.log('[vtecxnext getGroups] start.')
+  // vte.cxへリクエスト
+  const method = 'GET'
+  const url = `/d/?_group`
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
+  //console.log(`[vtecxnext getGroups] response=${response}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  return await getJson(response)
+}
+
+/**
+ * whether you are in the group
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param uri group key
+ * @return true/false 
+ */
+export const isGroupMember = async (req:IncomingMessage, res:ServerResponse, uri:string): Promise<boolean> => {
+  //console.log('[vtecxnext noGroupMember] start.')
+  // キー入力値チェック
+  checkUri(uri)
+  // vte.cxへリクエスト
+  const method = 'GET'
+  const url = `/d${uri}?_is_group_member`
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
+  //console.log(`[vtecxnext noGroupMember] response=${response}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  const data = await getJson(response)
+  return data?.feed?.title === 'true' ? true : false
+}
+
+/**
+ * whether you are in the admin group
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @return true/false 
+ */
+export const isAdmin = async (req:IncomingMessage, res:ServerResponse): Promise<boolean> => {
+  return await isGroupMember(req, res, '/_group/$admin')
+}
+
+/**
  * add user
  * @param req request (for authentication)
  * @param res response (for authentication)
