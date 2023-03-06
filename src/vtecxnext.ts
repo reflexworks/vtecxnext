@@ -2810,8 +2810,12 @@ const fetchProc = (url:string, requestInit:RequestInit): Promise<Response> => {
  * @param res ブラウザへのレスポンス
  */
 const setCookie = (response:Response, res:ServerResponse): void => {
-  const setCookieVal = response.headers.get('set-cookie')
+  let setCookieVal = response.headers.get('set-cookie')
   if (setCookieVal === '' || setCookieVal) {
+    if (setCookieVal !== '' && setCookieVal.indexOf('SameSite') < 0) {
+      setCookieVal += '; SameSite=Lax'
+    }
+    //console.log(`[vtecxnext setCookie] value : ${setCookieVal}`)
     res.setHeader('set-cookie', setCookieVal)
   }
 }
