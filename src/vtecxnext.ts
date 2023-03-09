@@ -12,6 +12,15 @@ export const hello = (): void => {
   console.log('Hello vtecxnext.')
 }
 
+const SERVLETPATH_DATA = '/d'
+const SERVLETPATH_PROVIDER = '/p'
+const SERVLETPATH_OAUTH = '/o'
+
+type StatusMessage = {
+  status:number,
+  message:string,
+}
+
 /**
  * X-Requested-With header check.
  * If not specified, set status 417 to the response.
@@ -50,9 +59,9 @@ export const hello = (): void => {
  * @param res response
  * @param wsse WSSE
  * @param reCaptchaToken reCAPTCHA token
- * @return true if log in has been successful.
+ * @return status and message
  */
- export const login = async (req:IncomingMessage, res:ServerResponse, wsse:string, reCaptchaToken?:string): Promise<boolean> => {
+ export const login = async (req:IncomingMessage, res:ServerResponse, wsse:string, reCaptchaToken?:string): Promise<StatusMessage> => {
   //console.log('[vtecxnext login] start.')
   // 入力チェック
   checkNotNull(wsse, 'Authentication information')
@@ -60,26 +69,18 @@ export const hello = (): void => {
   // reCAPTCHA tokenは任意
   const param = reCaptchaToken ? `&g-recaptcha-token=${reCaptchaToken}` : ''
   const method = 'GET'
-  const url = `/d/?_login${param}`
+  const url = `${SERVLETPATH_DATA}/?_login${param}`
   const headers = {'X-WSSE' : `${wsse}`}
   let response:Response
   try {
-    response = await fetchVtecx(method, url, headers)
+    response = await requestVtecx(method, url, req, null, headers)
   } catch (e) {
     throw newFetchError(e, true)
   }
-  //const feed = await response.json()
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
-  // レスポンスのエラーチェック
-  let isLoggedin
-  if (response.status < 400) {
-    isLoggedin = true
-  } else {
-    isLoggedin = false
-  }
-  //console.log(`[vtecxnext login] end. status=${response.status} message=${feed.title}`)
-  return isLoggedin
+  const data = await response.json()
+  return {status:response.status, message:data.feed.title}
 }
 
 /**
@@ -88,16 +89,16 @@ export const hello = (): void => {
  * @param req request
  * @param res response
  * @param rxid RXID
- * @return true if log in has been successful.
+ * @return status and message
  */
-export const loginWithRxid = async (req:IncomingMessage, res:ServerResponse, rxid:string): Promise<boolean> => {
+export const loginWithRxid = async (req:IncomingMessage, res:ServerResponse, rxid:string): Promise<StatusMessage> => {
   //console.log('[vtecxnext loginWithRxid] start.')
   // 入力チェック
   checkNotNull(rxid, 'Authentication information')
   // ログイン
   // reCAPTCHA tokenは任意
   const method = 'GET'
-  const url = `/d/?_login&_RXID=${rxid}`
+  const url = `${SERVLETPATH_DATA}/?_login&_RXID=${rxid}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -107,15 +108,41 @@ export const loginWithRxid = async (req:IncomingMessage, res:ServerResponse, rxi
   const feed = await response.json()
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
-  // レスポンスのエラーチェック
-  let isLoggedin
-  if (response.status < 400) {
-    isLoggedin = true
-  } else {
-    isLoggedin = false
+  const data = await response.json()
+  return {status:response.status, message:data.feed.title}
+}
+
+/**
+ * login with Time-based One Time Password.
+ * If the login is successful, sets the authentication information in a cookie.
+ * @param req request
+ * @param res response
+ * @param totp Time-based One Time Password
+ * @param isTrustedDevice true if trusted device
+ * @return status and message
+ */
+ export const loginWithTotp = async (req:IncomingMessage, res:ServerResponse, totp:string, isTrustedDevice:boolean): Promise<StatusMessage> => {
+  //console.log('[vtecxnext loginWithTotp] start.')
+  // 入力チェック
+  checkNotNull(totp, 'Authentication information')
+  // ログイン
+  const method = 'GET'
+  const url = `${SERVLETPATH_DATA}/?_login`
+  const headers:any = {'Authorization' : `TOTP ${totp}`}
+  if (isTrustedDevice) {
+    headers['X-TRUSTED-DEVICE'] = 'true'
   }
-  //console.log(`[vtecxnext loginWithRxid] end. status=${response.status} message=${feed.title}`)
-  return isLoggedin
+  //console.log(`[vtecxnext loginWithTotp] headers = ${JSON.stringify(headers)}`)
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, null, headers)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  const data = await response.json()
+  return {status:response.status, message:data.feed.title}
 }
 
 /**
@@ -123,9 +150,9 @@ export const loginWithRxid = async (req:IncomingMessage, res:ServerResponse, rxi
  * If the logout is successful, delete the authentication information in a cookie.
  * @param req request
  * @param res response
- * @return true if log out has been successful.
+ * @return status and message
  */
- export const logout = async (req:IncomingMessage, res:ServerResponse): Promise<boolean> => {
+ export const logout = async (req:IncomingMessage, res:ServerResponse): Promise<StatusMessage> => {
   //console.log('[vtecxnext logout] start.')
   // vte.cxへリクエスト
   const method = 'GET'
@@ -145,7 +172,8 @@ export const loginWithRxid = async (req:IncomingMessage, res:ServerResponse, rxi
   // 戻り値
   const data = await getJson(response)
   //console.log(`[vtecxnext logout] response message : ${data.feed.title}`)
-  return true
+  //return true
+  return {status:response.status, message:data.feed.title}
 }
 
 /**
@@ -336,7 +364,7 @@ export const now = async (): Promise<string> => {
   const feed = [{'title' : logTitle, 'subtitle' : logSubtitle, 'summary' : message}]
 
   const method = 'POST'
-  const url = `/p/?_log`
+  const url = `${SERVLETPATH_PROVIDER}/?_log`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -366,7 +394,7 @@ export const now = async (): Promise<string> => {
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/p${uri}?e`
+  const url = `${SERVLETPATH_PROVIDER}${uri}?e`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, null, null, targetService)
@@ -395,7 +423,7 @@ export const now = async (): Promise<string> => {
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/p${uri}${uri.includes('?') ? '&' : '?'}f`
+  const url = `${SERVLETPATH_PROVIDER}${uri}${uri.includes('?') ? '&' : '?'}f`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, null, null, targetService)
@@ -424,7 +452,7 @@ export const now = async (): Promise<string> => {
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/p${uri}${uri.includes('?') ? '&' : '?'}c`
+  const url = `${SERVLETPATH_PROVIDER}${uri}${uri.includes('?') ? '&' : '?'}c`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, null, null, targetService)
@@ -459,7 +487,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   }
   // vte.cxへリクエスト
   const method = 'POST'
-  const url = `/p${uri ? uri : '/'}?e`
+  const url = `${SERVLETPATH_PROVIDER}${uri ? uri : '/'}?e`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed), null, targetService)
@@ -494,7 +522,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   if (isbulk) {
     additionalParam = (parallel ? '&_bulk' : '&_bulkserial') + (async ? '&_async' : '')
   }
-  const url = `/p/?e${additionalParam}`
+  const url = `${SERVLETPATH_PROVIDER}/?e${additionalParam}`
   //console.log(`[vtecxnext put] url=${url}`)
   let response:Response
   try {
@@ -525,7 +553,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   // vte.cxへリクエスト
   const method = 'DELETE'
   const param = revision ? `&r=${revision}` : ''
-  const url = `/p${uri}?e${param}`
+  const url = `${SERVLETPATH_PROVIDER}${uri}?e${param}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, null, null, targetService)
@@ -554,7 +582,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'DELETE'
-  const url = `/p${uri}?_rf${async ? '&_async' : ''}`
+  const url = `${SERVLETPATH_PROVIDER}${uri}?_rf${async ? '&_async' : ''}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, null, null, targetService)
@@ -584,7 +612,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(num, 'number to allocate')
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/p${uri}?_allocids=${num}`
+  const url = `${SERVLETPATH_PROVIDER}${uri}?_allocids=${num}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, null, null, targetService)
@@ -616,7 +644,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(num, 'number to add')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/p${uri}?_addids=${num}`
+  const url = `${SERVLETPATH_PROVIDER}${uri}?_addids=${num}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, null, null, targetService)
@@ -646,7 +674,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/p${uri}?_getids`
+  const url = `${SERVLETPATH_PROVIDER}${uri}?_getids`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, null, null, targetService)
@@ -678,7 +706,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(num, 'number to set')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/p${uri}?_setids=${num}`
+  const url = `${SERVLETPATH_PROVIDER}${uri}?_setids=${num}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, null, null, targetService)
@@ -710,7 +738,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(range, 'range')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/p${uri}?_rangeids`
+  const url = `${SERVLETPATH_PROVIDER}${uri}?_rangeids`
   const feed = {feed : {'title' : range}}
   let response:Response
   try {
@@ -741,7 +769,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/p${uri}?_rangeids`
+  const url = `${SERVLETPATH_PROVIDER}${uri}?_rangeids`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -773,7 +801,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(feed, 'Feed')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/p/?_sessionfeed=${name}`
+  const url = `${SERVLETPATH_PROVIDER}/?_sessionfeed=${name}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -803,7 +831,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(entry, 'Entry')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/p/?_sessionentry=${name}`
+  const url = `${SERVLETPATH_PROVIDER}/?_sessionentry=${name}`
   const feed = {feed : {'entry' : entry}}
   let response:Response
   try {
@@ -834,7 +862,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(str, 'String')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/p/?_sessionstring=${name}`
+  const url = `${SERVLETPATH_PROVIDER}/?_sessionstring=${name}`
   const feed = {feed : {'title' : str}}
   let response:Response
   try {
@@ -865,7 +893,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(num, 'Number')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/p/?_sessionlong=${name}`
+  const url = `${SERVLETPATH_PROVIDER}/?_sessionlong=${name}`
   const feed = {feed : {'title' : String(num)}}
   let response:Response
   try {
@@ -896,7 +924,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(num, 'Number')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/p/?_sessionincr=${name}&_num=${num}`
+  const url = `${SERVLETPATH_PROVIDER}/?_sessionincr=${name}&_num=${num}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -926,7 +954,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(name, 'Name')
   // vte.cxへリクエスト
   const method = 'DELETE'
-  const url = `/p/?_sessionfeed=${name}`
+  const url = `${SERVLETPATH_PROVIDER}/?_sessionfeed=${name}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -954,7 +982,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(name, 'Name')
   // vte.cxへリクエスト
   const method = 'DELETE'
-  const url = `/p/?_sessionentry=${name}`
+  const url = `${SERVLETPATH_PROVIDER}/?_sessionentry=${name}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -982,7 +1010,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(name, 'Name')
   // vte.cxへリクエスト
   const method = 'DELETE'
-  const url = `/p/?_sessionstring=${name}`
+  const url = `${SERVLETPATH_PROVIDER}/?_sessionstring=${name}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -1010,7 +1038,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(name, 'Name')
   // vte.cxへリクエスト
   const method = 'DELETE'
-  const url = `/p/?_sessionlong=${name}`
+  const url = `${SERVLETPATH_PROVIDER}/?_sessionlong=${name}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -1038,7 +1066,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(name, 'Name')
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/p/?_sessionfeed=${name}`
+  const url = `${SERVLETPATH_PROVIDER}/?_sessionfeed=${name}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -1067,7 +1095,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(name, 'Name')
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/p/?_sessionentry=${name}`
+  const url = `${SERVLETPATH_PROVIDER}/?_sessionentry=${name}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -1096,7 +1124,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(name, 'Name')
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/p/?_sessionstring=${name}`
+  const url = `${SERVLETPATH_PROVIDER}/?_sessionstring=${name}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -1130,7 +1158,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(name, 'Name')
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/p/?_sessionlong=${name}`
+  const url = `${SERVLETPATH_PROVIDER}/?_sessionlong=${name}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -1165,7 +1193,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/p${uri}${uri.includes('?') ? '&' : '?'}_pagination=${pagerange}`
+  const url = `${SERVLETPATH_PROVIDER}${uri}${uri.includes('?') ? '&' : '?'}_pagination=${pagerange}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, null, null, targetService)
@@ -1196,7 +1224,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(num, 'page number')
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/p${uri}${uri.includes('?') ? '&' : '?'}n=${num}`
+  const url = `${SERVLETPATH_PROVIDER}${uri}${uri.includes('?') ? '&' : '?'}n=${num}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, null, null, targetService)
@@ -1234,7 +1262,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   }
   // vte.cxへリクエスト
   const method = 'POST'
-  const url = `/p/?_bq${async ? '&_async' : ''}`
+  const url = `${SERVLETPATH_PROVIDER}/?_bq${async ? '&_async' : ''}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(reqFeed))
@@ -1280,7 +1308,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   //console.log(`[vtecxnext deleteBQ] feed=${feed}`)
   // vte.cxへリクエスト
   const method = 'DELETE'
-  const url = `/p/?_bq${async ? '&_async' : ''}`
+  const url = `${SERVLETPATH_PROVIDER}/?_bq${async ? '&_async' : ''}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -1312,7 +1340,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   const feed = editGetBqArgument(sql, values, parent)
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/p/?_querybq`
+  const url = `${SERVLETPATH_PROVIDER}/?_querybq`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -1348,7 +1376,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   const feed = editGetBqArgument(sql, values, parent)
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/p/?_querybq&_csv${filename ? '=' + filename : ''}`
+  const url = `${SERVLETPATH_PROVIDER}/?_querybq&_csv${filename ? '=' + filename : ''}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -1385,7 +1413,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(htmlTemplate, 'PDF template')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/p/?_pdf${filename ? '=' + filename : ''}`
+  const url = `${SERVLETPATH_PROVIDER}/?_pdf${filename ? '=' + filename : ''}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, htmlTemplate)
@@ -1421,7 +1449,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/p${uri}?_signature${revision ? '&r=' + revision : ''}`
+  const url = `${SERVLETPATH_PROVIDER}${uri}?_signature${revision ? '&r=' + revision : ''}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -1450,7 +1478,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(feed, 'Feed')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/p/?_signature`
+  const url = `${SERVLETPATH_PROVIDER}/?_signature`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -1480,7 +1508,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'DELETE'
-  const url = `/p${uri}?_signature${revision ? '&r=' + revision : ''}`
+  const url = `${SERVLETPATH_PROVIDER}${uri}?_signature${revision ? '&r=' + revision : ''}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -1508,7 +1536,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/p${uri}?_signature`
+  const url = `${SERVLETPATH_PROVIDER}${uri}?_signature`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -1568,7 +1596,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   //console.log(`[vtecxnext sendMail] feed = ${JSON.stringify(feed)}`)
   // vte.cxへリクエスト
   const method = 'POST'
-  const url = `/p/?_sendmail`
+  const url = `${SERVLETPATH_PROVIDER}/?_sendmail`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -1636,7 +1664,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   //console.log(`[vtecxnext pushNotification] feed = ${JSON.stringify(feed)}`)
   // vte.cxへリクエスト
   const method = 'POST'
-  const url = `/p/?_pushnotification`
+  const url = `${SERVLETPATH_PROVIDER}/?_pushnotification`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -1664,7 +1692,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkUri(channel)
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/p${channel}?_mqstatus=${flag ? 'true' : 'false'}`
+  const url = `${SERVLETPATH_PROVIDER}${channel}?_mqstatus=${flag ? 'true' : 'false'}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -1694,7 +1722,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(feed, 'Feed')
   // vte.cxへリクエスト
   const method = 'POST'
-  const url = `/p${channel}?_mq`
+  const url = `${SERVLETPATH_PROVIDER}${channel}?_mq`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -1722,7 +1750,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkUri(channel)
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/p${channel}?_mq`
+  const url = `${SERVLETPATH_PROVIDER}${channel}?_mq`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -1753,7 +1781,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkNotNull(selfid, 'selfid (hierarchical name under my group alias)')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/p${group}?_joingroup&_selfid=${selfid}`
+  const url = `${SERVLETPATH_PROVIDER}${group}?_joingroup&_selfid=${selfid}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -1782,7 +1810,7 @@ export const post = async (req:IncomingMessage, res:ServerResponse, feed:any, ur
   checkUri(group)
   // vte.cxへリクエスト
   const method = 'DELETE'
-  const url = `/p${group}?_leavegroup`
+  const url = `${SERVLETPATH_PROVIDER}${group}?_leavegroup`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -1812,7 +1840,7 @@ export const noGroupMember = async (req:IncomingMessage, res:ServerResponse, uri
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/d${uri}?_no_group_member`
+  const url = `${SERVLETPATH_DATA}${uri}?_no_group_member`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -1839,7 +1867,7 @@ export const getGroups = async (req:IncomingMessage, res:ServerResponse): Promis
   //console.log('[vtecxnext getGroups] start.')
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/d/?_group`
+  const url = `${SERVLETPATH_DATA}/?_group`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -1868,7 +1896,7 @@ export const isGroupMember = async (req:IncomingMessage, res:ServerResponse, uri
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/d${uri}?_is_group_member`
+  const url = `${SERVLETPATH_DATA}${uri}?_is_group_member`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -1910,7 +1938,7 @@ export const adduser = async (req:IncomingMessage, res:ServerResponse, feed:any,
   // vte.cxへリクエスト
   const method = 'POST'
   const param = reCaptchaToken ? `&g-recaptcha-token=${reCaptchaToken}` : ''
-  const url = `/d/?_adduser${param}`
+  const url = `${SERVLETPATH_DATA}/?_adduser${param}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -1939,7 +1967,7 @@ export const adduserByAdmin = async (req:IncomingMessage, res:ServerResponse, fe
   checkNotNull(feed, 'Feed')
   // vte.cxへリクエスト
   const method = 'POST'
-  const url = `/d/?_adduserByAdmin`
+  const url = `${SERVLETPATH_DATA}/?_adduserByAdmin`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -1969,7 +1997,7 @@ export const passreset = async (req:IncomingMessage, res:ServerResponse, feed:an
   // vte.cxへリクエスト
   const method = 'POST'
   const param = reCaptchaToken ? `&g-recaptcha-token=${reCaptchaToken}` : ''
-  const url = `/d/?_passreset${param}`
+  const url = `${SERVLETPATH_DATA}/?_passreset${param}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -1997,7 +2025,7 @@ export const changepass = async (req:IncomingMessage, res:ServerResponse, feed:a
   checkNotNull(feed, 'Feed')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/d/?_changephash`
+  const url = `${SERVLETPATH_DATA}/?_changephash`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -2025,7 +2053,7 @@ export const changepassByAdmin = async (req:IncomingMessage, res:ServerResponse,
   checkNotNull(feed, 'Feed')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/d/?_changephashByAdmin`
+  const url = `${SERVLETPATH_DATA}/?_changephashByAdmin`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -2053,7 +2081,7 @@ export const changeaccount = async (req:IncomingMessage, res:ServerResponse, fee
   checkNotNull(feed, 'Feed')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/d/?_changeaccount`
+  const url = `${SERVLETPATH_DATA}/?_changeaccount`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -2081,7 +2109,7 @@ export const changeaccount_verify = async (req:IncomingMessage, res:ServerRespon
   checkNotNull(verifyCode, 'verify code')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/d/?_changeaccount_verify=${verifyCode}`
+  const url = `${SERVLETPATH_DATA}/?_changeaccount_verify=${verifyCode}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -2108,7 +2136,7 @@ export const userstatus = async (req:IncomingMessage, res:ServerResponse, accoun
   //console.log('[vtecxnext userstatus] start.')
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/d/?_userstatus${account ? '=' + account : ''}`
+  const url = `${SERVLETPATH_DATA}/?_userstatus${account ? '=' + account : ''}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -2137,7 +2165,7 @@ export const revokeuser = async (req:IncomingMessage, res:ServerResponse, accoun
   checkNotNull(account, 'account')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/d/?_revokeuser=${account}`
+  const url = `${SERVLETPATH_DATA}/?_revokeuser=${account}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -2166,7 +2194,7 @@ export const revokeusers = async (req:IncomingMessage, res:ServerResponse, feed:
   checkNotNull(feed, 'Feed')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/d/?_revokeuser`
+  const url = `${SERVLETPATH_DATA}/?_revokeuser`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -2194,7 +2222,7 @@ export const activateuser = async (req:IncomingMessage, res:ServerResponse, acco
   checkNotNull(account, 'account')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/d/?_activateuser=${account}`
+  const url = `${SERVLETPATH_DATA}/?_activateuser=${account}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -2223,7 +2251,7 @@ export const activateusers = async (req:IncomingMessage, res:ServerResponse, fee
   checkNotNull(feed, 'Feed')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/d/?_activateuser`
+  const url = `${SERVLETPATH_DATA}/?_activateuser`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -2249,7 +2277,7 @@ export const canceluser = async (req:IncomingMessage, res:ServerResponse): Promi
   //console.log('[vtecxnext canceluser] start.')
   // vte.cxへリクエスト
   const method = 'DELETE'
-  const url = `/d/?_canceluser`
+  const url = `${SERVLETPATH_DATA}/?_canceluser`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -2278,7 +2306,7 @@ export const deleteuser = async (req:IncomingMessage, res:ServerResponse, accoun
   checkNotNull(account, 'account')
   // vte.cxへリクエスト
   const method = 'DELETE'
-  const url = `/d/?_deleteuser=${account}`
+  const url = `${SERVLETPATH_DATA}/?_deleteuser=${account}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -2307,7 +2335,7 @@ export const deleteusers = async (req:IncomingMessage, res:ServerResponse, feed:
   checkNotNull(feed, 'Feed')
   // vte.cxへリクエスト
   const method = 'DELETE'
-  const url = `/d/?_deleteuser`
+  const url = `${SERVLETPATH_DATA}/?_deleteuser`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -2379,7 +2407,7 @@ export const savefiles = async (req:IncomingMessage, res:ServerResponse, uri:str
     // vte.cxへリクエスト
     const method = 'PUT'
     const contentUri = `${uri}${uri.endsWith('/') ? '' : '/'}${formidableFile.field}`
-    const url = `/p${contentUri}?_content`
+    const url = `${SERVLETPATH_PROVIDER}${contentUri}?_content`
     const headers = {'Content-Type' : formidableFile.file.mimetype}
     //console.log(`[vtecxnext savefiles] request. url=${url}`)
     const promiseResponse = requestVtecx(method, url, req, fileBuffer, headers)
@@ -2416,7 +2444,7 @@ export const savefiles = async (req:IncomingMessage, res:ServerResponse, uri:str
 
   // vte.cxへリクエスト
   const method = 'POST'
-  const url = `/p${uri}?_content`
+  const url = `${SERVLETPATH_PROVIDER}${uri}?_content`
   //console.log(`[vtecxnext savefiles] request. url=${url}`)
   const response = await requestVtecx(method, url, req, formData)
   //console.log(`[vtecxnext savefiles] response. status=${response.status}`)
@@ -2442,7 +2470,7 @@ export const putcontent = async (req:IncomingMessage, res:ServerResponse, uri:st
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/p${uri}?_content`
+  const url = `${SERVLETPATH_PROVIDER}${uri}?_content`
   //const headers = {'Content-Type' : req.headers['content-type'], 'Content-Length' : req.headers['content-length']}
   const headers = {'Content-Type' : req.headers['content-type']}
   const buf = await buffer(req)
@@ -2473,7 +2501,7 @@ export const deletecontent = async (req:IncomingMessage, res:ServerResponse, uri
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'DELETE'
-  const url = `/p${uri}?_content`
+  const url = `${SERVLETPATH_PROVIDER}${uri}?_content`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -2502,7 +2530,7 @@ export const getcontent = async (req:IncomingMessage, res:ServerResponse, uri:st
   checkUri(uri)
   // vte.cxへリクエスト
   const method = 'GET'
-  const url = `/p${uri}?_content`
+  const url = `${SERVLETPATH_PROVIDER}${uri}?_content`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -2542,7 +2570,7 @@ export const getcontent = async (req:IncomingMessage, res:ServerResponse, uri:st
   checkNotNull(feed, 'Feed')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/d/?_addacl`
+  const url = `${SERVLETPATH_DATA}/?_addacl`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -2571,7 +2599,7 @@ export const removeacl = async (req:IncomingMessage, res:ServerResponse, feed:an
   checkNotNull(feed, 'Feed')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/d/?_removeacl`
+  const url = `${SERVLETPATH_DATA}/?_removeacl`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -2600,7 +2628,7 @@ export const addalias = async (req:IncomingMessage, res:ServerResponse, feed:any
   checkNotNull(feed, 'Feed')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/d/?_addalias`
+  const url = `${SERVLETPATH_DATA}/?_addalias`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -2629,7 +2657,7 @@ export const removealias = async (req:IncomingMessage, res:ServerResponse, feed:
   checkNotNull(feed, 'Feed')
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `/d/?_removealias`
+  const url = `${SERVLETPATH_DATA}/?_removealias`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
@@ -2686,6 +2714,116 @@ export const buffer = async (readable: Readable):Promise<Buffer> => {
     chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk)
   }
   return Buffer.concat(chunks)
+}
+
+/**
+ * get TOTP link
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param chs length of one side of QR code
+ * @return QR code URL in feed.title
+ */
+export const getTotpLink = async (req:IncomingMessage, res:ServerResponse, chs?:number): Promise<any> => {
+  //console.log('[vtecxnext getTotpLink] start.')
+  // vte.cxへリクエスト
+  const method = 'POST'
+  const url = `${SERVLETPATH_DATA}/?_createtotp${chs ? '&_chs=' + String(chs) : ''}`
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
+  //console.log(`[vtecxnext getTotpLink] response=${response}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  return await getJson(response)
+}
+
+/**
+ * create TOTP
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param feed one-time password for feed.title when you do book registration
+ * @return message
+ */
+export const createTotp = async (req:IncomingMessage, res:ServerResponse, feed:any): Promise<any> => {
+  //console.log('[vtecxnext createTotp] start.')
+  // 入力チェック
+  checkNotNull(feed, 'Feed')
+  // vte.cxへリクエスト
+  const method = 'POST'
+  const url = `${SERVLETPATH_DATA}/?_createtotp`
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
+  //console.log(`[vtecxnext createTotp] response=${response}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  return await getJson(response)
+}
+
+/**
+ * delete TOTP
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param account target account (for service admin user)
+ * @return message
+ */
+export const deleteTotp = async (req:IncomingMessage, res:ServerResponse, account?:string): Promise<any> => {
+  //console.log('[vtecxnext deleteTotp] start.')
+  // vte.cxへリクエスト
+  const method = 'DELETE'
+  const url = `${SERVLETPATH_DATA}/?_deletetotp${account ? '=' + account : ''}`
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
+  //console.log(`[vtecxnext deleteTotp] response=${response}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  return await getJson(response)
+}
+
+/**
+ * change TDID (Trusted device ID)
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param account target account (for service admin user)
+ * @return message
+ */
+export const changeTdid = async (req:IncomingMessage, res:ServerResponse): Promise<any> => {
+  //console.log('[vtecxnext changeTdid] start.')
+  // vte.cxへリクエスト
+  const method = 'PUT'
+  const url = `${SERVLETPATH_DATA}/?_changetdid`
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
+  //console.log(`[vtecxnext changeTdid] response=${response}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  return await getJson(response)
 }
 
 
@@ -2763,9 +2901,21 @@ const fetchVtecx = async (method:string, url:string, headers:any, body?:any, mod
   //console.log(`[vtecxnext fetchVtecx] url=${process.env.VTECX_URL}${url}`)
   headers['X-Requested-With'] = 'XMLHttpRequest'
   const apiKey = process.env.VTECX_APIKEY
-  if (apiKey) {
-    headers['Authorization'] = `APIKey ${apiKey}`
+  if (apiKey && !url.startsWith(SERVLETPATH_DATA)) {
+    //headers['Authorization'] = `APIKey ${apiKey}`
+    const apiKeyVal = `APIKey ${apiKey}`
+    if (headers.Authorization) {
+      if (Array.isArray(headers.Authorization)) {
+        headers.Authorization.push(apiKeyVal)
+      } else {
+        const tmp = headers.Authorization
+        headers.Authorization = [tmp, apiKeyVal]
+      }
+    } else {
+      headers.Authorization = apiKeyVal
+    }
   }
+  //console.log(`[vtecxnext fetchVtecx] headers = ${JSON.stringify(headers)}`)
   const requestInit:RequestInit = {
     body: body,
     method: method,
@@ -2789,7 +2939,7 @@ const newFetchError = (e:any, isVtecx:boolean):FetchError => {
   } else {
     errMsg = `Unexpected error.`
   }
-  console.log(`[vtecxnext fetchProc] errMsg = ${errMsg}`)
+  //console.log(`[vtecxnext fetchProc] errMsg = ${errMsg}`)
   return new FetchError(errMsg)
 }
 
@@ -2810,14 +2960,52 @@ const fetchProc = (url:string, requestInit:RequestInit): Promise<Response> => {
  * @param res ブラウザへのレスポンス
  */
 const setCookie = (response:Response, res:ServerResponse): void => {
+  // 各レスポンスヘッダーについて、ヘッダー名をキーとする配列をログ出力します。
   let setCookieVal = response.headers.get('set-cookie')
   if (setCookieVal === '' || setCookieVal) {
-    if (setCookieVal !== '' && setCookieVal.indexOf('SameSite') < 0) {
-      setCookieVal += '; SameSite=Lax'
-    }
     //console.log(`[vtecxnext setCookie] value : ${setCookieVal}`)
-    res.setHeader('set-cookie', setCookieVal)
+    //res.setHeader('set-cookie', setCookieVal)
+    const setCookieVals = splitCookieValue(setCookieVal)
+    res.setHeader('set-cookie', setCookieVals)
+    /*
+    for (const val of setCookieVals) {
+      res.setHeader('set-cookie', val)
+    }
+    */
   }
+}
+
+/**
+ * 複数のset-cookieの値を分割。
+ * fetchで受け取った際カンマ区切りで繋げられており、
+ * これをそのままset-cookieにセットするとブラウザでは2項目目以降が適用されないため。
+ * @param val set-cookieの値
+ * @returns 分割したset-cookieの値
+ */
+const splitCookieValue = (val:string):string[] => {
+  //console.log(`[vtecxnext splitCookieValue] start. val = ${val}`)
+
+  const ret = []
+  if (val) {
+    const parts = val.split(', ')
+    let tmp:string = ''
+    for (const part of parts) {
+      tmp += part
+      // ; Expires=Thu, 09-Mar-2023 06:55:48 GMT 等のカンマは区切りとしない。
+      if (part.match('^.*; Expires=...$')) {
+        // 続きあり
+      } else {
+        ret.push(tmp)
+        tmp = ''
+      }
+    }
+    if (tmp) {
+      ret.push(tmp)
+    }
+  }
+
+  //console.log(`[vtecxnext splitCookieValue] return : ${JSON.stringify(ret)}`)
+  return ret
 }
 
 /**
@@ -2863,7 +3051,7 @@ const setResponseHeaders = (response:Response, res:ServerResponse): void => {
  * @returns 戻り値はなし。エラーの場合VtecxNextErrorをスロー。
  */
 const checkVtecxResponse = async (response:Response): Promise<void> => {
-  if (response.status < 400) {
+  if (response.status < 400 && response.status !== 203) {
     return
   } else {
     // エラー
@@ -2920,6 +3108,7 @@ const getJson = async (response:Response): Promise<any> => {
   } catch (e) {
     let errMsg:string
     if (e instanceof Error) {
+      //console.log(`[vtecxnext getJson] Error occured. ${e.name}: ${e.message}`)
       errMsg = `JsonError: ${e.message}`
     } else {
       errMsg = `JsonError: unexpected error`
@@ -3018,7 +3207,7 @@ const oauth = async (req:IncomingMessage, res:ServerResponse, provider:string, o
   checkNotNull(provider, 'OAuth provider')
   // vte.cxへリクエスト (state取得)
   const method = 'POST'
-  const url = `/o/${provider}/create_state`
+  const url = `${SERVLETPATH_OAUTH}/${provider}/create_state`
   let response:Response
   try {
     response = await requestVtecx(method, url, req)
@@ -3076,7 +3265,7 @@ const oauthGetAccesstoken = async (req:IncomingMessage, res:ServerResponse, prov
 
   // vte.cxへリクエスト (stateチェック)
   const vtecxMethod = 'POST'
-  const vtecxUrl = `/o/${provider}/check_state?state=${state}`
+  const vtecxUrl = `${SERVLETPATH_OAUTH}/${provider}/check_state?state=${state}`
   //console.log(`[vtecxnext oauthGetAccesstoken] vtecxUrl=${vtecxUrl}`)
   let vtecxResponse:Response
   try {
@@ -3208,7 +3397,7 @@ const oauthLink = async (req:IncomingMessage, res:ServerResponse, provider:strin
   //const param = reCaptchaToken ? `&g-recaptcha-token=${reCaptchaToken}` : ''
   const param = ''
   const method = 'POST'
-  const url = `/o/${provider}/link?state=${userInfo.state}${param}`
+  const url = `${SERVLETPATH_OAUTH}/${provider}/link?state=${userInfo.state}${param}`
   const reqFeed = [{'title' : userInfo.guid, 'subtitle' : userInfo.nickname}]
   let response:Response
   try {
