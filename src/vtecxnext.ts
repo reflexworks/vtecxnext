@@ -105,7 +105,6 @@ export const loginWithRxid = async (req:IncomingMessage, res:ServerResponse, rxi
   } catch (e) {
     throw newFetchError(e, true)
   }
-  const feed = await response.json()
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
   const data = await response.json()
