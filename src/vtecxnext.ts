@@ -15,6 +15,7 @@ export const hello = (): void => {
 const SERVLETPATH_DATA = '/d'
 const SERVLETPATH_PROVIDER = '/p'
 const SERVLETPATH_OAUTH = '/o'
+const HEADER_NEXTPAGE = 'x-vtecx-nextpage'
 
 type StatusMessage = {
   status:number,
@@ -410,7 +411,7 @@ export const now = async (): Promise<string> => {
 }
 
 /**
- * get entry
+ * get feed
  * @param req request (for authentication)
  * @param res response (for authentication)
  * @param uri key and conditions
@@ -418,6 +419,19 @@ export const now = async (): Promise<string> => {
  */
  export const getFeed = async (req:IncomingMessage, res:ServerResponse, uri:string, targetService?:string): Promise<any> => {
   //console.log('[vtecxnext getFeed] start.')
+  const vtecxRes:VtecxResponse = await getFeedResponse(req, res, uri, targetService)
+  return vtecxRes.data
+}
+
+/**
+ * get feed
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param uri key and conditions
+ * @return feed (entry array). Returns a cursor in the header if more data is available. (x-vtecx-nextpage)
+ */
+export const getFeedResponse = async (req:IncomingMessage, res:ServerResponse, uri:string, targetService?:string): Promise<VtecxResponse> => {
+  //console.log('[vtecxnext getFeedResponse] start.')
   // キー入力値チェック
   checkUri(uri)
   // vte.cxへリクエスト
@@ -435,7 +449,13 @@ export const now = async (): Promise<string> => {
   // レスポンスのエラーチェック
   await checkVtecxResponse(response)
   // 戻り値
-  return await getJson(response)
+  const data:any = await getJson(response)
+  const header:any = {}
+  const nextpage = response.headers.get(HEADER_NEXTPAGE)
+  if (nextpage) {
+    header[HEADER_NEXTPAGE] = nextpage
+  }
+  return new VtecxResponse(response.status, header, data)
 }
 
 /**
@@ -447,6 +467,21 @@ export const now = async (): Promise<string> => {
  */
  export const count = async (req:IncomingMessage, res:ServerResponse, uri:string, targetService?:string): Promise<number|null> => {
   //console.log('[vtecxnext count] start.')
+  const vtecxRes:VtecxResponse = await countResponse(req, res, uri, targetService)
+  // 戻り値
+  const data = vtecxRes.data
+  return vtecxRes.data.feed.title ? Number(data.feed.title) : null
+}
+
+/**
+ * get count
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param uri key and conditions
+ * @return feed. Returns a cursor in the header if more data is available. (x-vtecx-nextpage)
+ */
+export const countResponse = async (req:IncomingMessage, res:ServerResponse, uri:string, targetService?:string): Promise<VtecxResponse> => {
+  //console.log('[vtecxnext countResponse] start.')
   // キー入力値チェック
   checkUri(uri)
   // vte.cxへリクエスト
@@ -464,8 +499,13 @@ export const now = async (): Promise<string> => {
   // レスポンスのエラーチェック
   await checkVtecxResponse(response)
   // 戻り値
-  const data = await getJson(response)
-  return data.feed.title ? Number(data.feed.title) : null
+  const data:any = await getJson(response)
+  const header:any = {}
+  const nextpage = response.headers.get(HEADER_NEXTPAGE)
+  if (nextpage) {
+    header[HEADER_NEXTPAGE] = nextpage
+  }
+  return new VtecxResponse(response.status, header, data)
 }
 
 /**
@@ -2829,6 +2869,20 @@ export const changeTdid = async (req:IncomingMessage, res:ServerResponse): Promi
 
 //---------------------------------------------
 /**
+ * response class
+ */
+export class VtecxResponse {
+  status:number
+  header:any
+  data:any
+  constructor(status:number, header:any, data:any) {
+    this.status = status
+    this.header = header
+    this.data = data
+  }
+}
+
+/**
  * Error returned from vte.cx
  */
 export class VtecxNextError extends Error {
@@ -2899,6 +2953,9 @@ const requestVtecx = async (method:string, url:string, req?:IncomingMessage, bod
 const fetchVtecx = async (method:string, url:string, headers:any, body?:any, mode?:RequestMode): Promise<Response> => {
   //console.log(`[vtecxnext fetchVtecx] url=${process.env.VTECX_URL}${url}`)
   headers['X-Requested-With'] = 'XMLHttpRequest'
+  if (VTECX_SERVICENAME) {
+    headers['X-SERVICENAME'] = VTECX_SERVICENAME
+  }
   const apiKey = process.env.VTECX_APIKEY
   if (apiKey && !url.startsWith(SERVLETPATH_DATA)) {
     //headers['Authorization'] = `APIKey ${apiKey}`
@@ -2929,6 +2986,7 @@ const fetchVtecx = async (method:string, url:string, headers:any, body?:any, mod
 
 /** vte.cx URL */
 const VTECX_URL = process.env.VTECX_URL ?? ''
+const VTECX_SERVICENAME = process.env.VTECX_SERVICENAME ?? ''
 
 const newFetchError = (e:any, isVtecx:boolean):FetchError => {
   let errMsg:string
@@ -2965,12 +3023,8 @@ const setCookie = (response:Response, res:ServerResponse): void => {
     //console.log(`[vtecxnext setCookie] value : ${setCookieVal}`)
     //res.setHeader('set-cookie', setCookieVal)
     const setCookieVals = splitCookieValue(setCookieVal)
+    //console.log(`[vtecxnext setCookie] values : ${setCookieVals}`)
     res.setHeader('set-cookie', setCookieVals)
-    /*
-    for (const val of setCookieVals) {
-      res.setHeader('set-cookie', val)
-    }
-    */
   }
 }
 
