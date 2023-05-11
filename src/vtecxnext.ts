@@ -9,7 +9,7 @@ import urlmodule, { URLSearchParams } from 'url'
  * Hello world.
  */
 export const hello = (): void => {
-  console.log('Hello vtecxnext.')
+  console.log('[vtecxnext] Hello vtecxnext.')
 }
 
 const SERVLETPATH_DATA = '/d'
@@ -1459,9 +1459,13 @@ export const post = async (req:IncomingMessage|undefined, res:ServerResponse|und
   //console.log(`[vtecxnext getBQCsv] checkVtecxResponse end.`)
   // 戻り値
   const resData = await response.blob()
+  //console.log(`[vtecxnext getBQCsv] response.blob()`)
   setResponseHeaders(response, res)
+  //console.log(`[vtecxnext getBQCsv] setResponseHeaders`)
   const csvData = await resData.arrayBuffer()
-  res.end(csvData)
+  //console.log(`[vtecxnext getBQCsv] await resData.arrayBuffer()`)
+  res.end(new Uint8Array(csvData))
+  //console.log(`[vtecxnext getBQCsv] res.end(new Uint8Array(csvData))`)
   return true
 }
 
@@ -1497,8 +1501,8 @@ export const post = async (req:IncomingMessage|undefined, res:ServerResponse|und
   // 戻り値
   const resData = await response.blob()
   setResponseHeaders(response, res)
-  const csvData:ArrayBuffer = await resData.arrayBuffer()
-  res.end(new Uint8Array(csvData))
+  const pdfData:ArrayBuffer = await resData.arrayBuffer()
+  res.end(new Uint8Array(pdfData))
   return true
 }
 
@@ -2616,8 +2620,8 @@ export const getcontent = async (req:IncomingMessage, res:ServerResponse, uri:st
   setResponseHeaders(response, res)
   res.statusCode = response.status
   if (response.status !== 204) {
-    const csvData:ArrayBuffer = await resData.arrayBuffer()
-    res.end(new Uint8Array(csvData))
+    const contentData:ArrayBuffer = await resData.arrayBuffer()
+    res.end(new Uint8Array(contentData))
   } else {
     res.end()
   }
@@ -3131,7 +3135,7 @@ const setResponseHeaders = (response:Response, res:ServerResponse): void => {
     const name = header.value[0]
     if (name.startsWith('content-') || name.startsWith('x-')) {
       const val = header.value[1]
-      //console.log(`[setResponseHeaders] ${name} = ${val}`)
+      //console.log(`[vtecxnext setResponseHeaders] ${name} = ${val}`)
       res.setHeader(name, val)
     }
     header = it.next()
@@ -3145,9 +3149,12 @@ const setResponseHeaders = (response:Response, res:ServerResponse): void => {
  * @returns 戻り値はなし。エラーの場合VtecxNextErrorをスロー。
  */
 const checkVtecxResponse = async (response:Response): Promise<void> => {
+  //console.log(`[vtecxnext checkVtecxResponse] status=${response.status}`)
   if (response.status < 400 && response.status !== 203) {
+    //console.log(`[vtecxnext checkVtecxResponse] return.`)
     return
   } else {
+    //console.log(`[vtecxnext checkVtecxResponse] error.`)
     // エラー
     const data = await response.json()
     let message
@@ -3217,17 +3224,17 @@ const getJson = async (response:Response): Promise<any> => {
  * @returns BigQuery登録・削除時のテーブル名指定文字列 ({スキーマ第一階層名}:{テーブル名}, ...)
  */
 const editBqTableNames = (tablenames:any): any => {
-  //console.log(`[editBqTableNames] tablenames = ${tablenames}`)
+  //console.log(`[vtecxnext editBqTableNames] tablenames = ${tablenames}`)
   if (!tablenames) {
     return null
   }
   let result = ''
   for (const key in tablenames) {
     const value = tablenames[key]
-    //console.log(`[editBqTableNames] ${key}=${value}`)
+    //console.log(`[vtecxnext editBqTableNames] ${key}=${value}`)
     result = `${result ? result + ',' : ''}${key}:${value}` 
   }
-  //console.log(`[editBqTableNames] result=${result}`)
+  //console.log(`[vtecxnext editBqTableNames] result=${result}`)
   return result
 }
 
