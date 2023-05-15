@@ -1399,8 +1399,21 @@ export const post = async (req:IncomingMessage|undefined, res:ServerResponse|und
  * @param parent parent name of result json
  * @return query results in JSON format
  */
- export const getBQ = async (req:IncomingMessage, res:ServerResponse, sql:string, values?:any[], parent?:string): Promise<any> => {
-  //console.log(`[vtecxnext getBQ] start. sql=${sql} values=${values}`)
+export const getBQ = async (req:IncomingMessage, res:ServerResponse, sql:string, values?:any[], parent?:string): Promise<any> => {
+  return execBQ(req, res, sql, values)
+}
+
+/**
+ * query bigquery
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param sql query sql
+ * @param values values of query arguments
+ * @param parent parent name of result json
+ * @return query results in JSON format
+ */
+ export const execBQ = async (req:IncomingMessage, res:ServerResponse, sql:string, values?:any[], parent?:string): Promise<any> => {
+  //console.log(`[vtecxnext execBQ] start. sql=${sql} values=${values}`)
   // 入力チェック
   checkNotNull(sql, 'Query SQL')
   // 引数生成
@@ -1414,13 +1427,13 @@ export const post = async (req:IncomingMessage|undefined, res:ServerResponse|und
   } catch (e) {
     throw newFetchError(e, true)
   }
-  //console.log(`[vtecxnext getBQ] response. status=${response.status}`)
+  //console.log(`[vtecxnext execBQ] response. status=${response.status}`)
   // vte.cxからのset-cookieを転記
   setCookie(response, res)
-  //console.log(`[vtecxnext getBQ] setCookie end.`)
+  //console.log(`[vtecxnext execBQ] setCookie end.`)
   // レスポンスのエラーチェック
   await checkVtecxResponse(response)
-  //console.log(`[vtecxnext getBQ] checkVtecxResponse end.`)
+  //console.log(`[vtecxnext execBQ] checkVtecxResponse end.`)
   // 戻り値
   return await response.json()
 }
