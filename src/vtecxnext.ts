@@ -3217,6 +3217,11 @@ const getJson = async (response:Response): Promise<any> => {
   if (response.status === 204) {
     return null
   }
+  // content-length=0の場合nullを返す
+  const contentLength = response.headers.get('content-length')
+  if (contentLength === '0') {
+    return null
+  }
   try {
     return await response.json()
   } catch (e) {
