@@ -2989,7 +2989,18 @@ const requestVtecx = async (method:string, url:string, req?:IncomingMessage, bod
   }
   if (targetService) {
     // サービス連携の場合
-    const servicekey = process.env[`SERVICEKEY_${targetService}`]
+    let servicekey = process.env[`SERVICEKEY_${targetService}`]
+    if (!servicekey) {
+      const max = 10
+      for (let i = 1; i <= max; i++) {
+        const iStr = String(i)
+        const tmpServiceName = process.env[`SERVICELINKAGE_${iStr}`]
+        if (targetService == tmpServiceName) {
+          servicekey = process.env[`SERVICEKEY_${iStr}`]
+          break
+        }
+      }
+    }
     //console.log(`[requestVtecx] targetService=${targetService} servicekey=${servicekey}`)
     if (servicekey) {
       headers['X-SERVICELINKAGE'] = targetService
