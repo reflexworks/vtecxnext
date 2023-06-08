@@ -1285,7 +1285,7 @@ export const post = async (req:IncomingMessage|undefined, res:ServerResponse|und
  * @return feed Maximum number of pages in the specified page range, and total count.
  */
  export const getPage = async (req:IncomingMessage, res:ServerResponse, uri:string, num:number, targetService?:string): Promise<any> => {
-  //console.log('[vtecxnext getPage] start.')
+  //console.log(`[vtecxnext getPage] start. uri=${uri} num=${num}`)
   // 入力値チェック
   checkUri(uri)
   checkNotNull(num, 'page number')
@@ -2923,6 +2923,19 @@ export const changeTdid = async (req:IncomingMessage, res:ServerResponse): Promi
   return await getJson(response)
 }
 
+/**
+ * null、undefined、空文字の判定
+ * @param val チェック値
+ * @returns null、undefined、空文字の場合true
+ */
+export const isBlank = (val:any): boolean => {
+  if (val === null || val === undefined || val === '') {
+    return true
+  }
+
+  return false
+}
+
 
 
 //---------------------------------------------
@@ -3198,7 +3211,7 @@ const checkVtecxResponse = async (response:Response): Promise<void> => {
  * @returns 戻り値はなし。エラーの場合VtecxNextErrorをスロー。
  */
 const checkNotNull = (val:any, name?:string): void => {
-  if (!val) {
+  if (isBlank(val)) {
     throw new VtecxNextError(400, `${name ?? 'Key'} is required.`)
   }
 }
