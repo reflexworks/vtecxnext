@@ -862,7 +862,6 @@ export const post = async (req:IncomingMessage|undefined, res:ServerResponse|und
  * @return true if successful
  */
  export const setSessionFeed = async (req:IncomingMessage, res:ServerResponse, name:string, feed:any): Promise<boolean> => {
-  //console.log(`[vtecxnext setSessionFeed] start. name=${name} feed=${feed}`)
   // 入力チェック
   checkNotNull(name, 'Name')
   checkNotNull(feed, 'Feed')
@@ -1792,6 +1791,35 @@ export const getBQ = async (req:IncomingMessage, res:ServerResponse, sql:string,
 }
 
 /**
+ * get status of MessageQueue.
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param name name
+ * @return feed
+ */
+export const getMessageQueueStatus = async (req:IncomingMessage, res:ServerResponse, channel:string): Promise<any> => {
+  //console.log(`[vtecxnext getMessageQueueStatus] start. channel=${channel}`)
+  // 入力チェック
+  checkUri(channel)
+  // vte.cxへリクエスト
+  const method = 'GET'
+  const url = `${SERVLETPATH_PROVIDER}${channel}?_mqstatus`
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
+  //console.log(`[vtecxnext getMessageQueueStatus] response. status=${response.status}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  // 戻り値
+  return await getJson(response)
+}
+
+/**
  * set MessageQueue.
  * @param req request (for authentication)
  * @param res response (for authentication)
@@ -1822,7 +1850,7 @@ export const getBQ = async (req:IncomingMessage, res:ServerResponse, sql:string,
 }
 
 /**
- * get feed from session
+ * get messageQueue.
  * @param req request (for authentication)
  * @param res response (for authentication)
  * @param name name
@@ -2996,6 +3024,7 @@ const requestVtecx = async (method:string, url:string, req?:IncomingMessage, bod
   const cookie = req ? req.headers['cookie'] : undefined
   const headers:any = cookie ? {'Cookie' : cookie} : {}
   if (additionalHeaders) {
+    //console.log(`[vtecxnext requestVtecx] additionalHeaders for`)
     for (const key in additionalHeaders) {
       headers[key] = additionalHeaders[key]
     }
