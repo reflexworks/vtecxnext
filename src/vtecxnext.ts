@@ -653,6 +653,37 @@ export const post = async (req:IncomingMessage|undefined, res:ServerResponse|und
 }
 
 /**
+ * clear folder
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param uri parent key
+ * @param async execute async
+ * @return true if successful
+ */
+export const clearFolder = async (req:IncomingMessage|undefined, res:ServerResponse|undefined, uri:string, async?:boolean, targetService?:string): Promise<boolean> => {
+  //console.log(`[vtecxnext clearFolder] start. uri=${uri} async=${async}`)
+  // キー入力値チェック
+  checkUri(uri)
+  // vte.cxへリクエスト
+  const method = 'DELETE'
+  const url = `${SERVLETPATH_PROVIDER}${uri}?_clearfolder${async ? '&_async' : ''}`
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, null, null, targetService)
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
+  //console.log(`[vtecxnext clearFolder] response. status=${response.status}`)
+  // vte.cxからのset-cookieを転記
+  if (res) {
+    setCookie(response, res)
+  }
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  return true
+}
+
+/**
  * allocate numbers
  * @param req request (for authentication)
  * @param res response (for authentication)
@@ -2952,6 +2983,18 @@ export const changeTdid = async (req:IncomingMessage, res:ServerResponse): Promi
 }
 
 /**
+ * Merge an existing user with an line oauth user.
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param rxid RXID
+ * @return message feed
+ */
+export const mergeOAuthUserLine = async (req:IncomingMessage, res:ServerResponse, rxid:string): Promise<any> => {
+  //console.log(`[vtecxnext mergeOAuthUserLine] start. feed=${feed}`)
+  return mergeOAuthUser(req, res, 'line', rxid)
+}
+
+/**
  * null、undefined、空文字の判定
  * @param val チェック値
  * @returns null、undefined、空文字の場合true
@@ -2963,8 +3006,6 @@ export const isBlank = (val:any): boolean => {
 
   return false
 }
-
-
 
 //---------------------------------------------
 /**
@@ -3614,4 +3655,35 @@ const createURLSearchParams = (data:any) => {
   const params = new URLSearchParams()
   Object.keys(data).forEach(key => params.append(key, data[key]))
   return params
+}
+
+/**
+ * Merge an existing user with an oauth user.
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param provider OAuth provider name
+ * @param rxid RXID
+ * @return message feed
+ */
+const mergeOAuthUser = async (req:IncomingMessage, res:ServerResponse, provider:string, rxid:string): Promise<any> => {
+  //console.log(`[vtecxnext mergeOAuthUser] start. feed=${feed}`)
+  // 入力チェック
+  checkNotNull(provider, 'Provider')
+  checkNotNull(rxid, 'RXID')
+  // vte.cxへリクエスト
+  const method = 'PUT'
+  const url = `${SERVLETPATH_DATA}/?_mergeoauthuser`
+  const feed = {'feed' : {'subtitle' : provider, 'rights' : rxid}}
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
+  //console.log(`[vtecxnext mergeOAuthUser] response. status=${response.status}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  return await getJson(response)
 }
