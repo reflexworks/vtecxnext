@@ -1447,7 +1447,7 @@ export const getBQ = async (req:IncomingMessage, res:ServerResponse, sql:string,
   // 入力チェック
   checkNotNull(sql, 'Query SQL')
   // 引数生成
-  const feed = editGetBqArgument(sql, values, parent)
+  const feed = editSqlArgument(sql, values, parent)
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `${SERVLETPATH_PROVIDER}/?_querybq`
@@ -1483,7 +1483,7 @@ export const getBQ = async (req:IncomingMessage, res:ServerResponse, sql:string,
   // 入力チェック
   checkNotNull(sql, 'Query SQL')
   // 引数生成
-  const feed = editGetBqArgument(sql, values, parent)
+  const feed = editSqlArgument(sql, values, parent)
   // vte.cxへリクエスト
   const method = 'PUT'
   const url = `${SERVLETPATH_PROVIDER}/?_querybq&_csv${filename ? '=' + filename : ''}`
@@ -1510,6 +1510,119 @@ export const getBQ = async (req:IncomingMessage, res:ServerResponse, sql:string,
   res.end(new Uint8Array(csvData))
   //console.log(`[vtecxnext getBQCsv] res.end(new Uint8Array(csvData))`)
   return true
+}
+
+/**
+ * Execute a query SQL to the database and get the result.
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param sql query sql
+ * @param values values of query arguments
+ * @param parent parent name of result json
+ * @return query results in JSON format
+ */
+export const queryRDB = async (req:IncomingMessage, res:ServerResponse, sql:string, values?:any[], parent?:string): Promise<any> => {
+  //console.log(`[vtecxnext queryRDB] start. sql=${sql} values=${values}`)
+  // 入力チェック
+  checkNotNull(sql, 'Query SQL')
+  // 引数生成
+  const feed = editSqlArgument(sql, values, parent)
+  // vte.cxへリクエスト
+  const method = 'PUT'
+  const url = `${SERVLETPATH_PROVIDER}/?_queryrdb`
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
+  //console.log(`[vtecxnext execBQ] response. status=${response.status}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  //console.log(`[vtecxnext execBQ] setCookie end.`)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  //console.log(`[vtecxnext execBQ] checkVtecxResponse end.`)
+  // 戻り値
+  return await response.json()
+}
+
+/**
+ * Search RDB and return results in CSV format.
+ * @param req request (for authentication)
+ * @param res response
+ * @param sql query sql
+ * @param values values of query arguments
+ * @param filename file name of csv
+ * @param parent parent name of result json
+ * @return true
+ */
+export const queryRDBCsv = async (req:IncomingMessage, res:ServerResponse, sql:string, values?:any[], filename?:string, parent?:string): Promise<boolean> => {
+  //console.log(`[vtecxnext queryRDBCsv] start. sql=${sql} values=${values}`)
+  // 入力チェック
+  checkNotNull(sql, 'Query SQL')
+  // 引数生成
+  const feed = editSqlArgument(sql, values, parent)
+  // vte.cxへリクエスト
+  const method = 'PUT'
+  const url = `${SERVLETPATH_PROVIDER}/?_queryrdb&_csv${filename ? '=' + filename : ''}`
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
+  //console.log(`[vtecxnext queryRDBCsv] response. status=${response.status}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  //console.log(`[vtecxnext queryRDBCsv] setCookie end.`)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  //console.log(`[vtecxnext queryRDBCsv] checkVtecxResponse end.`)
+  // 戻り値
+  const resData = await response.blob()
+  //console.log(`[vtecxnext queryRDBCsv] response.blob()`)
+  setResponseHeaders(response, res)
+  //console.log(`[vtecxnext queryRDBCsv] setResponseHeaders`)
+  const csvData = await resData.arrayBuffer()
+  //console.log(`[vtecxnext queryRDBCsv] await resData.arrayBuffer()`)
+  res.end(new Uint8Array(csvData))
+  //console.log(`[vtecxnext queryRDBCsv] res.end(new Uint8Array(csvData))`)
+  return true
+}
+
+/**
+ * Execute SQL to the database.
+ * If there are multiple SQLs, they will be wrapped in a transaction.
+ * @param req request (for authentication)
+ * @param res response (for authentication)
+ * @param sqls sql list
+ * @param values values of query arguments
+ */
+export const execRDB = async (req:IncomingMessage, res:ServerResponse, sqls:string[], values?:any[][]): Promise<any> => {
+  //console.log(`[vtecxnext execRDB] start. sql=${sql} values=${values}`)
+  // 入力チェック
+  checkNotNull(sqls, 'exec SQL')
+  // 引数生成
+  const feed = editSqlsArgument(sqls, values)
+  // vte.cxへリクエスト
+  const method = 'PUT'
+  const url = `${SERVLETPATH_PROVIDER}/?_execrdb`
+  let response:Response
+  try {
+    response = await requestVtecx(method, url, req, JSON.stringify(feed))
+  } catch (e) {
+    throw newFetchError(e, true)
+  }
+  //console.log(`[vtecxnext execRDB] response. status=${response.status}`)
+  // vte.cxからのset-cookieを転記
+  setCookie(response, res)
+  //console.log(`[vtecxnext execBQ] setCookie end.`)
+  // レスポンスのエラーチェック
+  await checkVtecxResponse(response)
+  //console.log(`[vtecxnext execRDB] checkVtecxResponse end.`)
+  // 戻り値
+  return await response.json()
 }
 
 /**
@@ -3351,20 +3464,52 @@ const editBqTableNames = (tablenames:any): any => {
 }
 
 /**
- * BigQuery検索の引数を生成
+ * SQLインジェクション対策を行い、安全に値を設定した上で、feedにセットします.
  * @param sql SQL
  * @param values SQLに指定する値
  * @param parent 戻り値JSONの親項目(任意)か、CSVのヘッダ(任意)
- * @returns BigQuery検索の引数
+ * @returns SQLをセットしたfeed
  */
-const editGetBqArgument = (sql:string, values?:any[], parent?:string): any => {
+const editSqlArgument = (sql:string, values?:any[], parent?:string): any => {
   // SQLに引数を代入（SQLインジェクション対応）
   const editSql = values ? formatSql(sql, values) : sql
-  //console.log(`[vtecxnext editGetBqArgument] sql=${editSql}`)
+  //console.log(`[vtecxnext editSqlArgument] sql=${editSql}`)
   // 引数
-  const feed:any = {'feed' : {'title' : editSql}}
+  const entry:any = {'title' : editSql}
   if (parent) {
-    feed.feed['subtitle'] = parent
+    entry['subtitle'] = parent
+  }
+  const feed:any[] = [entry]
+  return feed
+}
+
+/**
+ * SQLインジェクション対策を行い、安全に値を設定した上で、feedにセットします.
+ * @param sqls SQLリスト
+ * @param values SQLに指定する値
+ * @returns SQLをセットしたfeed
+ */
+const editSqlsArgument = (sqls:string[], values?:any[][]): any => {
+  // SQLに引数を代入（SQLインジェクション対応）
+  const len = sqls.length
+  let editedSqls:string[]
+  if (values) {
+    if (sqls.length !== values.length) {
+      throw new VtecxNextError(400, ``)
+    }
+    editedSqls = new Array(len)
+    for (let i = 0; i < len; i++) {
+      editedSqls[i] = formatSql(sqls[i], values[i])
+    }
+  } else {
+    editedSqls = sqls
+  }
+  const feed:any[] = []
+  let i = 0
+  for (const editSql of editedSqls) {
+    const entry = {'title' : editSql}
+    feed[i] = entry
+    i++
   }
   return feed
 }
