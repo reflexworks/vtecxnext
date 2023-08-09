@@ -1598,8 +1598,10 @@ export const queryRDBCsv = async (req:IncomingMessage, res:ServerResponse, sql:s
  * @param res response (for authentication)
  * @param sqls sql list
  * @param values values of query arguments
+ * @param async execute async
+ * @param isbulk execute with autocommit
  */
-export const execRDB = async (req:IncomingMessage, res:ServerResponse, sqls:string[], values?:any[][]): Promise<any> => {
+export const execRDB = async (req:IncomingMessage, res:ServerResponse, sqls:string[], values?:any[][], async?:boolean, isbulk?:boolean): Promise<any> => {
   //console.log(`[vtecxnext execRDB] start. sql=${sql} values=${values}`)
   // 入力チェック
   checkNotNull(sqls, 'exec SQL')
@@ -1607,7 +1609,7 @@ export const execRDB = async (req:IncomingMessage, res:ServerResponse, sqls:stri
   const feed = editSqlsArgument(sqls, values)
   // vte.cxへリクエスト
   const method = 'PUT'
-  const url = `${SERVLETPATH_PROVIDER}/?_execrdb`
+  const url = `${SERVLETPATH_PROVIDER}/?_execrdb${async ? '&_async' : ''}${isbulk ? '&_bulk' : ''}`
   let response:Response
   try {
     response = await requestVtecx(method, url, req, JSON.stringify(feed))
