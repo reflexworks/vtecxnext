@@ -2680,9 +2680,10 @@ export class VtecxNext {
   /**
    * save files
    * @param uri key
+   * @param bysize true if registering with specified size
    * @returns message
    */
-  savefiles = async (uri:string): Promise<any> => {
+  savefiles = async (uri:string, bysize?:boolean): Promise<any> => {
     //console.log(`[vtecxnext savefiles] start. uri=${uri}`)
     // キー入力値チェック
     checkUri(uri)
@@ -2713,7 +2714,7 @@ export class VtecxNext {
       const buffer = await promiseKeyBuffer.promiseBuffer
       const method = 'PUT'
       const contentUri = `${uri}${uri.endsWith('/') ? '' : '/'}${key}`
-      const url = `${SERVLETPATH_PROVIDER}${contentUri}?_content`
+      const url = `${SERVLETPATH_PROVIDER}${contentUri}?_content${bysize ? '&_bysize' : ''}`
       //console.log(`[vtecxnext savefiles] request. url=${url}`)
       const promiseResponse = this.requestVtecx(method, url, buffer)
       promises.push(promiseResponse)
@@ -2735,18 +2736,28 @@ export class VtecxNext {
   }
 
   /**
+   * save files registering with specified size
+   * @param uri key
+   * @returns message
+   */
+  savefilesBySize = async (uri:string): Promise<any> => {
+    return this.savefiles(uri, true)
+  }
+
+  /**
    * upload content
    * @param uri key
+   * @param bysize true if registering with specified size
    * @return message
    */
-  putcontent = async (uri:string): Promise<any> => {
+  putcontent = async (uri:string, bysize?:boolean): Promise<any> => {
     //console.log(`[vtecxnext putcontent] start. uri=${uri} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'PUT'
-    const url = `${SERVLETPATH_PROVIDER}${uri}?_content`
-    //const headers = {'Content-Type' : req.headers['content-type'], 'Content-Length' : req.headers['content-length']}
+    const url = `${SERVLETPATH_PROVIDER}${uri}?_content${bysize ? '&_bysize' : ''}`
+    //console.log(`[vtecxnext putcontent] request. url=${url}`)
     const headers = {'Content-Type' : this.req.headers.get('content-type')}
     //const buf = await buffer(this.req)
     const buf = await this.req.arrayBuffer()
@@ -2762,6 +2773,15 @@ export class VtecxNext {
     // レスポンスのエラーチェック
     await checkVtecxResponse(response)
     return await getJson(response)
+  }
+
+  /**
+   * upload content registering with specified size
+   * @param uri key
+   * @return message
+   */
+  putcontentBySize = async (uri:string): Promise<any> => {
+    return this.putcontent(uri, true)
   }
 
   /**
