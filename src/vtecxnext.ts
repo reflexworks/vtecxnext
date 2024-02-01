@@ -2785,6 +2785,36 @@ export class VtecxNext {
   }
 
   /**
+   * upload content and numbering
+   * @param parenturi parent key
+   * @return numbered key
+   */
+  postcontent = async (parenturi:string): Promise<any> => {
+    //console.log(`[vtecxnext postcontent] start. parenturi=${parenturi} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
+    // キー入力値チェック
+    checkUri(parenturi)
+    // vte.cxへリクエスト
+    const method = 'POST'
+    const url = `${SERVLETPATH_PROVIDER}${parenturi}?_content`
+    //console.log(`[vtecxnext postcontent] request. url=${url}`)
+    const headers = {'Content-Type' : this.req.headers.get('content-type')}
+    //const buf = await buffer(this.req)
+    const buf = await this.req.arrayBuffer()
+    let response:Response
+    try {
+      response = await this.requestVtecx(method, url, buf, headers)
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext postcontent] response. status=${response.status}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    return await getJson(response)
+  }
+
+  /**
    * delete content
    * @param uri key
    * @return message
