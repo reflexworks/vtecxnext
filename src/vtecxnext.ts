@@ -2787,15 +2787,16 @@ export class VtecxNext {
   /**
    * upload content and numbering
    * @param parenturi parent key
+   * @param extension extension
    * @return numbered key
    */
-  postcontent = async (parenturi:string): Promise<any> => {
+  postcontent = async (parenturi:string, extension?:string): Promise<any> => {
     //console.log(`[vtecxnext postcontent] start. parenturi=${parenturi} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
     // キー入力値チェック
     checkUri(parenturi)
     // vte.cxへリクエスト
     const method = 'POST'
-    const url = `${SERVLETPATH_PROVIDER}${parenturi}?_content`
+    const url = `${SERVLETPATH_PROVIDER}${parenturi}?_content${extension ? '&_ext=' + extension : ''}`
     //console.log(`[vtecxnext postcontent] request. url=${url}`)
     const headers = {'Content-Type' : this.req.headers.get('content-type')}
     //const buf = await buffer(this.req)
