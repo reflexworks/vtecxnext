@@ -2882,6 +2882,89 @@ export class VtecxNext {
   }
 
   /**
+   * get signed url for upload content 
+   * @param uri key
+   * @return message
+   */
+  putcontentSignedUrl = async (uri:string): Promise<any> => {
+    //console.log(`[vtecxnext putcontentSignedUrl] start. uri=${uri} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
+    // キー入力値チェック
+    checkUri(uri)
+    // vte.cxへリクエスト
+    const method = 'PUT'
+    const url = `${SERVLETPATH_PROVIDER}${uri}?_content&_signedurl`
+    //console.log(`[vtecxnext putcontentSignedUrl] request. url=${url}`)
+    const headers = {'Content-Type' : this.req.headers.get('content-type')}
+    let response:Response
+    try {
+      response = await this.requestVtecx(method, url, undefined, headers)
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext putcontentSignedUrl] response. status=${response.status}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    return await getJson(response)
+  }
+
+  /**
+   * get signed url for upload content and numbering
+   * @param parenturi parent key
+   * @param extension extension
+   * @return numbered key
+   */
+  postcontentSignedUrl = async (parenturi:string, extension?:string): Promise<any> => {
+    //console.log(`[vtecxnext postcontentSignedUrl] start. parenturi=${parenturi} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
+    // キー入力値チェック
+    checkUri(parenturi)
+    // vte.cxへリクエスト
+    const method = 'POST'
+    const url = `${SERVLETPATH_PROVIDER}${parenturi}?_content&_signedurl${extension ? '&_ext=' + extension : ''}`
+    //console.log(`[vtecxnext postcontentSignedUrl] request. url=${url}`)
+    const headers = {'Content-Type' : this.req.headers.get('content-type')}
+    let response:Response
+    try {
+      response = await this.requestVtecx(method, url, undefined, headers)
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext postcontentSignedUrl] response. status=${response.status}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    return await getJson(response)
+  }
+
+  /**
+   * get signed url for download content 
+   * @param uri key
+   * @return message
+   */
+  getcontentSignedUrl = async (uri:string): Promise<any> => {
+    //console.log(`[vtecxnext getcontentSignedUrl] start. uri=${uri}`)
+    // キー入力値チェック
+    checkUri(uri)
+    // vte.cxへリクエスト
+    const method = 'GET'
+    const url = `${SERVLETPATH_PROVIDER}${uri}?_content&_signedurl`
+    let response:Response
+    try {
+      response = await this.requestVtecx(method, url)
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext getcontentSignedUrl] response. status=${response.status}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    return await getJson(response)
+  }
+
+  /**
    * OAuth authorization request to LINE.
    * If the OAuth request is successful, this module retains the redirect information.
    */
