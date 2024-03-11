@@ -2886,14 +2886,14 @@ export class VtecxNext {
    * @param uri key
    * @return message
    */
-  putcontentSignedUrl = async (uri:string): Promise<any> => {
-    //console.log(`[vtecxnext putcontentSignedUrl] start. uri=${uri} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
+  getSignedUrlToPutContent = async (uri:string): Promise<any> => {
+    //console.log(`[vtecxnext getSignedUrlToPutContent] start. uri=${uri} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_content&_signedurl`
-    //console.log(`[vtecxnext putcontentSignedUrl] request. url=${url}`)
+    //console.log(`[vtecxnext getSignedUrlToPutContent] request. url=${url}`)
     const headers = {'Content-Type' : this.req.headers.get('content-type')}
     let response:Response
     try {
@@ -2901,7 +2901,7 @@ export class VtecxNext {
     } catch (e) {
       throw newFetchError(e, true)
     }
-    //console.log(`[vtecxnext putcontentSignedUrl] response. status=${response.status}`)
+    //console.log(`[vtecxnext getSignedUrlToPutContent] response. status=${response.status}`)
     // vte.cxからのset-cookieを転記
     this.setCookie(response)
     // レスポンスのエラーチェック
@@ -2915,14 +2915,14 @@ export class VtecxNext {
    * @param extension extension
    * @return numbered key
    */
-  postcontentSignedUrl = async (parenturi:string, extension?:string): Promise<any> => {
-    //console.log(`[vtecxnext postcontentSignedUrl] start. parenturi=${parenturi} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
+  getSignedUrlToPostContent = async (parenturi:string, extension?:string): Promise<any> => {
+    //console.log(`[vtecxnext getSignedUrlToPostContent] start. parenturi=${parenturi} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
     // キー入力値チェック
     checkUri(parenturi)
     // vte.cxへリクエスト
     const method = 'POST'
     const url = `${SERVLETPATH_PROVIDER}${parenturi}?_content&_signedurl${extension ? '&_ext=' + extension : ''}`
-    //console.log(`[vtecxnext postcontentSignedUrl] request. url=${url}`)
+    //console.log(`[vtecxnext getSignedUrlToPostContent] request. url=${url}`)
     const headers = {'Content-Type' : this.req.headers.get('content-type')}
     let response:Response
     try {
@@ -2930,7 +2930,7 @@ export class VtecxNext {
     } catch (e) {
       throw newFetchError(e, true)
     }
-    //console.log(`[vtecxnext postcontentSignedUrl] response. status=${response.status}`)
+    //console.log(`[vtecxnext getSignedUrlToPostContent] response. status=${response.status}`)
     // vte.cxからのset-cookieを転記
     this.setCookie(response)
     // レスポンスのエラーチェック
@@ -2943,8 +2943,8 @@ export class VtecxNext {
    * @param uri key
    * @return message
    */
-  getcontentSignedUrl = async (uri:string): Promise<any> => {
-    //console.log(`[vtecxnext getcontentSignedUrl] start. uri=${uri}`)
+  getSignedUrlToGetContent = async (uri:string): Promise<any> => {
+    //console.log(`[vtecxnext getSignedUrlToGetContent] start. uri=${uri}`)
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
@@ -2956,7 +2956,7 @@ export class VtecxNext {
     } catch (e) {
       throw newFetchError(e, true)
     }
-    //console.log(`[vtecxnext getcontentSignedUrl] response. status=${response.status}`)
+    //console.log(`[vtecxnext getSignedUrlToGetContent] response. status=${response.status}`)
     // vte.cxからのset-cookieを転記
     this.setCookie(response)
     // レスポンスのエラーチェック

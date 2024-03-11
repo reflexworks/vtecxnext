@@ -1,6 +1,6 @@
 {
   "name": "@vtecx/vtecxnext",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "vte.cx Next.js api",
   "main": "dist/index.js",
   "files": [
