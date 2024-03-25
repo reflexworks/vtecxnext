@@ -160,6 +160,7 @@ export class VtecxNext {
         resData = ''
       }
     }
+    //console.log(`[vtecxnext response] resHeaders = ${JSON.stringify(this.resHeaders)}`)
     return new Response(resData, {
       status: this.resStatus,
       headers: this.resHeaders
@@ -2748,9 +2749,10 @@ export class VtecxNext {
    * upload content
    * @param uri key
    * @param bysize true if registering with specified size
+   * @param filename attachment file name
    * @return message
    */
-  putcontent = async (uri:string, bysize?:boolean): Promise<any> => {
+  putcontent = async (uri:string, bysize?:boolean, filename?:string): Promise<any> => {
     //console.log(`[vtecxnext putcontent] start. uri=${uri} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
     // キー入力値チェック
     checkUri(uri)
@@ -2758,7 +2760,10 @@ export class VtecxNext {
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_content${bysize ? '&_bysize' : ''}`
     //console.log(`[vtecxnext putcontent] request. url=${url}`)
-    const headers = {'Content-Type' : this.req.headers.get('content-type')}
+    const headers:any = {'Content-Type' : this.req.headers.get('content-type')}
+    if (filename) {
+      headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(filename)}"`
+    }
     //const buf = await buffer(this.req)
     const buf = await this.req.arrayBuffer()
     let response:Response
@@ -2788,17 +2793,21 @@ export class VtecxNext {
    * upload content and numbering
    * @param parenturi parent key
    * @param extension extension
+   * @param filename attachment file name
    * @return numbered key
    */
-  postcontent = async (parenturi:string, extension?:string): Promise<any> => {
-    //console.log(`[vtecxnext postcontent] start. parenturi=${parenturi} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
+  postcontent = async (parenturi:string, extension?:string, filename?:string): Promise<any> => {
+    //console.log(`[vtecxnext postcontent] start. parenturi=${parenturi} extension=${extension} filename=${filename}`)
     // キー入力値チェック
     checkUri(parenturi)
     // vte.cxへリクエスト
     const method = 'POST'
     const url = `${SERVLETPATH_PROVIDER}${parenturi}?_content${extension ? '&_ext=' + extension : ''}`
     //console.log(`[vtecxnext postcontent] request. url=${url}`)
-    const headers = {'Content-Type' : this.req.headers.get('content-type')}
+    const headers:any = {'Content-Type' : this.req.headers.get('content-type')}
+    if (filename) {
+      headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(filename)}"`
+    }
     //const buf = await buffer(this.req)
     const buf = await this.req.arrayBuffer()
     let response:Response
@@ -2884,9 +2893,10 @@ export class VtecxNext {
   /**
    * get signed url for upload content 
    * @param uri key
+   * @param filename attachment file name
    * @return message
    */
-  getSignedUrlToPutContent = async (uri:string): Promise<any> => {
+  getSignedUrlToPutContent = async (uri:string, filename?:string): Promise<any> => {
     //console.log(`[vtecxnext getSignedUrlToPutContent] start. uri=${uri} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
     // キー入力値チェック
     checkUri(uri)
@@ -2894,7 +2904,10 @@ export class VtecxNext {
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_content&_signedurl`
     //console.log(`[vtecxnext getSignedUrlToPutContent] request. url=${url}`)
-    const headers = {'Content-Type' : this.req.headers.get('content-type')}
+    const headers:any = {'Content-Type' : this.req.headers.get('content-type')}
+    if (filename) {
+      headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(filename)}"`
+    }
     let response:Response
     try {
       response = await this.requestVtecx(method, url, undefined, headers)
@@ -2915,7 +2928,7 @@ export class VtecxNext {
    * @param extension extension
    * @return numbered key
    */
-  getSignedUrlToPostContent = async (parenturi:string, extension?:string): Promise<any> => {
+  getSignedUrlToPostContent = async (parenturi:string, extension?:string, filename?:string): Promise<any> => {
     //console.log(`[vtecxnext getSignedUrlToPostContent] start. parenturi=${parenturi} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
     // キー入力値チェック
     checkUri(parenturi)
@@ -2923,7 +2936,10 @@ export class VtecxNext {
     const method = 'POST'
     const url = `${SERVLETPATH_PROVIDER}${parenturi}?_content&_signedurl${extension ? '&_ext=' + extension : ''}`
     //console.log(`[vtecxnext getSignedUrlToPostContent] request. url=${url}`)
-    const headers = {'Content-Type' : this.req.headers.get('content-type')}
+    const headers:any = {'Content-Type' : this.req.headers.get('content-type')}
+    if (filename) {
+      headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(filename)}"`
+    }
     let response:Response
     try {
       response = await this.requestVtecx(method, url, undefined, headers)
