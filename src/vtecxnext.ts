@@ -2752,7 +2752,18 @@ export class VtecxNext {
    * @param filename attachment file name
    * @return message
    */
-  putcontent = async (uri:string, bysize?:boolean, filename?:string): Promise<any> => {
+  putcontent = async (uri:string, filename?:string): Promise<any> => {
+    return this.putcontentProc(uri, false, filename)
+  }
+
+  /**
+   * upload content
+   * @param uri key
+   * @param bysize true if registering with specified size
+   * @param filename attachment file name
+   * @return message
+   */
+  private putcontentProc = async (uri:string, bysize?:boolean, filename?:string): Promise<any> => {
     //console.log(`[vtecxnext putcontent] start. uri=${uri} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
     // キー入力値チェック
     checkUri(uri)
@@ -2786,7 +2797,7 @@ export class VtecxNext {
    * @return message
    */
   putcontentBySize = async (uri:string): Promise<any> => {
-    return this.putcontent(uri, true)
+    return this.putcontentProc(uri, true)
   }
 
   /**
