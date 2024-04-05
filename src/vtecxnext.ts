@@ -895,7 +895,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_rangeids`
-    const feed = {feed : {'title' : range}}
+    const feed ={'feed' : {'title' : range}}
     let response:Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
@@ -982,7 +982,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}/?_sessionentry=${name}`
-    const feed = {feed : {'entry' : entry}}
+    const feed ={'feed' : {'entry' : entry}}
     let response:Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
@@ -1011,7 +1011,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}/?_sessionstring=${name}`
-    const feed = {feed : {'title' : str}}
+    const feed ={'feed' : {'title' : str}}
     let response:Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
@@ -1040,7 +1040,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}/?_sessionlong=${name}`
-    const feed = {feed : {'title' : String(num)}}
+    const feed ={'feed' : {'title' : String(num)}}
     let response:Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
