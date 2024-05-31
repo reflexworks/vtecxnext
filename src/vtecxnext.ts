@@ -3326,7 +3326,8 @@ export class VtecxNext {
     //const accesstokenBody = Buffer.from(accesstokenBodyStr, 'utf-8')
     const requestInit:RequestInit = {
       body: accesstokenBody,
-      method: accesstokenMethod
+      method: accesstokenMethod,
+      cache: 'no-cache',
     }
 
     let accesstokenResponse:Response
@@ -3371,7 +3372,8 @@ export class VtecxNext {
     //console.log(`[vtecxnext oauthGetUserinfoLine] url=${url}`)
     const requestInit:RequestInit = {
       headers: headers,
-      method: method
+      method: method,
+      cache: 'no-cache',
     }
     let response:Response
     try {
@@ -3537,7 +3539,8 @@ const fetchVtecx = async (method:string, url:string, headers:any, body?:any, mod
   const requestInit:RequestInit = {
     body: body,
     method: method,
-    headers: headers
+    headers: headers,
+    cache: 'no-cache',
   }
   if (mode) {
     requestInit['mode'] = mode
