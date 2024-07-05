@@ -1532,6 +1532,129 @@ export class VtecxNext {
   }
 
   /**
+   * post data to bdb and bigquery
+   * @param feed entries (JSON)
+   * @param uri parent key if not specified in entry
+   * @param tablenames key:entity's prop name, value:BigQuery table name
+   * @return registed entries
+   */
+  postBDBQ = async (feed:any, uri?:string, tablenames?:any): Promise<boolean> => {
+    //console.log(`[vtecxnext postBQ] start. async=${async} feed=${feed}`)
+    // 入力チェック
+    checkNotNull(feed, 'Feed')
+    if (uri) {
+      // 値の設定がある場合、キー入力値チェック
+      checkUri(uri)
+    }
+
+    // リクエストデータ
+    const reqFeed = 'feed' in feed ? feed : {'feed' : {'entry' : feed}}
+    // テーブル名の指定がある場合は指定
+    const tablenamesStr = editBqTableNames(tablenames)
+    if (tablenamesStr) {
+      reqFeed.feed['title'] = tablenamesStr
+    }
+    // vte.cxへリクエスト
+    const method = 'POST'
+    const url = `${SERVLETPATH_PROVIDER}${uri ? uri : '/'}?_bdbq`
+    let response:Response
+    try {
+      response = await this.requestVtecx(method, url, JSON.stringify(reqFeed))
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext postBDBQ] response. status=${response.status}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    return await getJson(response)
+  }
+
+  /**
+   * put data to bdb and post bigquery
+   * @param feed entries (JSON)
+   * @param uri parent key if not specified in entry
+   * @param tablenames key:entity's prop name, value:BigQuery table name
+   * @return true if successful
+   */
+  putBDBQ = async (feed:any, uri?:string, tablenames?:any): Promise<any> => {
+    //console.log(`[vtecxnext putBDBQ] start. feed=${feed}`)
+    // 入力チェック
+    checkNotNull(feed, 'Feed')
+    if (uri) {
+      // 値の設定がある場合、キー入力値チェック
+      checkUri(uri)
+    }
+
+    // リクエストデータ
+    const reqFeed = 'feed' in feed ? feed : {'feed' : {'entry' : feed}}
+    // テーブル名の指定がある場合は指定
+    const tablenamesStr = editBqTableNames(tablenames)
+    if (tablenamesStr) {
+      reqFeed.feed['title'] = tablenamesStr
+    }
+    // vte.cxへリクエスト
+    const method = 'PUT'
+    const url = `${SERVLETPATH_PROVIDER}${uri ? uri : '/'}?_bdbq`
+    let response:Response
+    try {
+      response = await this.requestVtecx(method, url, JSON.stringify(feed))
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext putBDBQ] response. status=${response.status}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    return await getJson(response)
+  }
+
+  /**
+   * delete data from bdb and bigquery
+   * @param keys delete keys
+   * @param tablenames key:entity's prop name, value:BigQuery table name
+   * @return true if successful
+   */
+  deleteBDBQ = async (keys:string[], tablenames?:any): Promise<boolean> => {
+    //console.log(`[vtecxnext deleteBDBQ] start. keys=${keys}`)
+    // 入力チェック
+    checkNotNull(keys, 'Key')
+    // テーブル名の指定がある場合は指定
+    const tablenamesStr = editBqTableNames(tablenames)
+    // キーを feed.link.___href にセットする
+    const links = []
+    let idx = 0
+    for (const key of keys) {
+      //console.log(`[vtecxnext deleteBDBQ] key=${key}`)
+      links[idx] = {'___href' : key}
+      idx++
+    }
+    const feed:any = {'feed': {}}
+    if (tablenamesStr) {
+      feed.feed['title'] = tablenamesStr
+    }
+    feed.feed['link'] = links
+    //console.log(`[vtecxnext deleteBDBQ] feed=${feed}`)
+    // vte.cxへリクエスト
+    const method = 'DELETE'
+    const url = `${SERVLETPATH_PROVIDER}/?_bdbq`
+    let response:Response
+    try {
+      response = await this.requestVtecx(method, url, JSON.stringify(feed))
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext deleteBDBQ] response. status=${response.status}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    return true
+  }
+
+  /**
    * Execute a query SQL to the database and get the result.
    * @param sql query sql
    * @param values values of query arguments
