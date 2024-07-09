@@ -1591,6 +1591,7 @@ export class VtecxNext {
     const reqFeed = 'feed' in feed ? feed : {'feed' : {'entry' : feed}}
     // テーブル名の指定がある場合は指定
     const tablenamesStr = editBqTableNames(tablenames)
+    //console.log(`[putBDBQ] tableamesStr=${tablenamesStr}`)
     if (tablenamesStr) {
       reqFeed.feed['title'] = tablenamesStr
     }
@@ -1599,7 +1600,7 @@ export class VtecxNext {
     const url = `${SERVLETPATH_PROVIDER}${uri ? uri : '/'}?_bdbq`
     let response:Response
     try {
-      response = await this.requestVtecx(method, url, JSON.stringify(feed))
+      response = await this.requestVtecx(method, url, JSON.stringify(reqFeed))
     } catch (e) {
       throw newFetchError(e, true)
     }
