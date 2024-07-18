@@ -1538,7 +1538,7 @@ export class VtecxNext {
    * @param tablenames key:entity's prop name, value:BigQuery table name
    * @return registed entries
    */
-  postBDBQ = async (feed:any, uri?:string, tablenames?:any): Promise<boolean> => {
+  postBDBQ = async (feed:any, uri?:string, tablenames?:any): Promise<any> => {
     //console.log(`[vtecxnext postBQ] start. async=${async} feed=${feed}`)
     // 入力チェック
     checkNotNull(feed, 'Feed')
