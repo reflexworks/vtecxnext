@@ -20,9 +20,28 @@ const SERVLETPATH_OAUTH = '/o'
 /** header : nextpage */
 const HEADER_NEXTPAGE = 'x-vtecx-nextpage'
 
-type StatusMessage = {
+export type StatusMessage = {
   status:number,
   message:string,
+}
+
+export type AdduserInfo = {
+  username?:string,
+  pswd?:string,
+  nickname?:string,
+  emailSubject?:string,
+  emailText?:string,
+  emailHtml?:string,
+}
+
+export type ChangepassByAdminInfo = {
+  uid:string,
+  pswd:string,
+}
+
+export type CreateGroupadminInfo = {
+  group:string,
+  uids:string[],
 }
 
 export class VtecxNext {
@@ -93,6 +112,18 @@ export class VtecxNext {
    */
   isBlank = (val:any): boolean => {
     return isBlank(val)
+  }
+
+  /**
+   * undefined、nullを空文字に変換
+   * @param val 文字列
+   * @returns 変換した文字列
+   */
+  null2blank = (val:string|undefined|null): string => {
+    if (val == undefined || val == null) {
+      return ''
+    }
+    return val
   }
 
   /**
@@ -2140,19 +2171,92 @@ export class VtecxNext {
   }
 
   /**
+   * add group
+   * (not yet joined)
+   * @param group group
+   * @param selfid hierarchical name under my group alias
+   * @return feed
+   */
+  addGroup = async (group:string, selfid?:string): Promise<any> => {
+    //console.log(`[vtecxnext addGroup] start. group=${group} selfid=${selfid} uids=${uids}`)
+    // 入力チェック
+    checkUri(group, 'group key')
+    //checkNotNull(selfid, 'selfid (hierarchical name under my group alias)')
+    // vte.cxへリクエスト
+    const method = 'POST'
+    const url = `${SERVLETPATH_PROVIDER}${group}?_addgroup${selfid ? '&_selfid=' + selfid : ''}`
+
+    let response:Response
+    try {
+      response = await this.requestVtecx(method, url)
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext addGroup] response. status=${response.status}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    // 戻り値
+    return await getJson(response)
+  }
+
+  /**
+   * add group by admin
+   * (not yet joined)
+   * @param uids uid list
+   * @param group group
+   * @param selfid hierarchical name under my group alias
+   * @return feed
+   */
+  addGroupByAdmin = async (uids:string[], group:string, selfid?:string): Promise<any> => {
+    //console.log(`[vtecxnext addGroupByAdmin] start. group=${group} selfid=${selfid} uids=${uids}`)
+    // 入力チェック
+    checkUri(group, 'group key')
+    //checkNotNull(selfid, 'selfid (hierarchical name under my group alias)')
+    // vte.cxへリクエスト
+    const method = 'POST'
+    const url = `${SERVLETPATH_PROVIDER}${group}?_addgroupByAdmin${selfid ? '&_selfid=' + selfid : ''}`
+    let value:any
+    if (uids) {
+      const feed = []
+      for (const uid of uids) {
+        const entry = {'link' : [{'___rel' : 'self', '___href' : `/_user/${uid}`}]}
+        feed.push(entry)
+      }
+      value = JSON.stringify(feed)
+    }
+    checkNotNull(value, 'uid')
+
+    let response:Response
+    try {
+      response = await this.requestVtecx(method, url, value)
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext addGroupByAdmin] response. status=${response.status}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    // 戻り値
+    return await getJson(response)
+  }
+
+  /**
    * join to the group
    * @param group group
    * @param selfid hierarchical name under my group alias
    * @return feed
    */
-  joinGroup = async (group:string, selfid:string): Promise<any> => {
+  joinGroup = async (group:string, selfid?:string): Promise<any> => {
     //console.log(`[vtecxnext joinGroup] start. group=${group} selfid=${selfid}`)
     // 入力チェック
     checkUri(group)
-    checkNotNull(selfid, 'selfid (hierarchical name under my group alias)')
+    //checkNotNull(selfid, 'selfid (hierarchical name under my group alias)')
     // vte.cxへリクエスト
     const method = 'PUT'
-    const url = `${SERVLETPATH_PROVIDER}${group}?_joingroup&_selfid=${selfid}`
+    const url = `${SERVLETPATH_PROVIDER}${group}?_joingroup${selfid ? '&_selfid=' + selfid : ''}`
     let response:Response
     try {
       response = await this.requestVtecx(method, url)
@@ -2286,14 +2390,18 @@ export class VtecxNext {
 
   /**
    * add user
-   * @param feed entry (JSON)
+   * @param adduserInfo adduser infomation
    * @param reCaptchaToken reCAPTCHA token
    * @return message feed
    */
-  adduser = async (feed:any, reCaptchaToken:string): Promise<any> => {
+  adduser = async (adduserInfo:AdduserInfo, reCaptchaToken:string): Promise<any> => {
     //console.log(`[vtecxnext adduser] start. feed=${feed}`)
     // 入力チェック
-    checkNotNull(feed, 'Feed')
+    checkNotNull(adduserInfo, 'username')
+    checkNotNull(adduserInfo.username, 'username')
+    checkNotNull(adduserInfo.pswd, 'pswd')
+    const entry = this.convertAdduserInfoToEntry(adduserInfo)
+    const feed = [entry]
     // vte.cxへリクエスト
     const method = 'POST'
     const param = reCaptchaToken ? `&g-recaptcha-token=${reCaptchaToken}` : ''
@@ -2313,15 +2421,38 @@ export class VtecxNext {
   }
 
   /**
+   * convert adduser info to argument entry
+   * @param adduserInfo adduser info
+   * @param isNoPswd パスワードを付加しない場合true(passresetの場合true)
+   * @returns entry
+   */
+  private convertAdduserInfoToEntry = (adduserInfo:AdduserInfo, isNoPswd?:boolean):any => {
+    return {
+      'contributor' : [{
+        'uri' : `urn:vte.cx:auth:${this.null2blank(adduserInfo.username)}${isNoPswd ? '' : ',' + this.null2blank(adduserInfo.pswd)}`,
+        'name' : adduserInfo.nickname,
+      }],
+      'title' : adduserInfo.emailSubject,
+      'summary' : adduserInfo.emailText,
+      'content' : {'______text' : adduserInfo.emailHtml}
+    }
+  }
+
+  /**
    * add user by user admin
    * @param feed entries (JSON)
-   * @param reCaptchaToken reCAPTCHA token
    * @return message feed
    */
-  adduserByAdmin = async (feed:any): Promise<any> => {
+  //adduserByAdmin = async (feed:any): Promise<any> => {
+  adduserByAdmin = async (adduserInfos:AdduserInfo[]): Promise<any> => {
     //console.log(`[vtecxnext adduserByAdmin] start. feed=${feed}`)
     // 入力チェック
-    checkNotNull(feed, 'Feed')
+    checkNotNull(adduserInfos, 'username')
+    const feed:any = []
+    for (const adduserInfo of adduserInfos) {
+      const entry = this.convertAdduserInfoToEntry(adduserInfo)
+      feed.push(entry)
+    }
     // vte.cxへリクエスト
     const method = 'POST'
     const url = `${SERVLETPATH_DATA}/?_adduserByAdmin`
@@ -2340,15 +2471,50 @@ export class VtecxNext {
   }
 
   /**
+   * add user by group admin
+   * @param feed entries (JSON)
+   * @param groupname group name
+   * @return message feed
+   */
+  adduserByGroupadmin = async (adduserInfos:AdduserInfo[], groupname:string): Promise<any> => {
+    //console.log(`[vtecxnext adduserByGroupadmin] start. feed=${feed}`)
+    // 入力チェック
+    checkNotNull(adduserInfos, 'username')
+    checkNotNull(groupname, 'group name')
+    const feed:any = []
+    for (const adduserInfo of adduserInfos) {
+      const entry = this.convertAdduserInfoToEntry(adduserInfo)
+      feed.push(entry)
+    }
+    // vte.cxへリクエスト
+    const method = 'POST'
+    const url = `${SERVLETPATH_DATA}/?_adduserByGroupadmin=${groupname}`
+    let response:Response
+    try {
+      response = await this.requestVtecx(method, url, JSON.stringify(feed))
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext adduserByGroupadmin] response. status=${response.status}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    return await getJson(response)
+  }
+
+  /**
    * Send email for password reset
-   * @param feed entry (JSON)
+   * @param adduserInfo mailaddress
    * @param reCaptchaToken reCAPTCHA token
    * @return message feed
    */
-  passreset = async (feed:any, reCaptchaToken?:string): Promise<any> => {
+  passreset = async (adduserInfo:AdduserInfo, reCaptchaToken?:string): Promise<any> => {
     //console.log(`[vtecxnext passreset] start. feed=${feed}`)
     // 入力チェック
-    checkNotNull(feed, 'Feed')
+    checkNotNull(adduserInfo, 'email address')
+    const entry = this.convertAdduserInfoToEntry(adduserInfo, true)
+    const feed = [entry]
     // vte.cxへリクエスト
     const method = 'POST'
     const param = reCaptchaToken ? `&g-recaptcha-token=${reCaptchaToken}` : ''
@@ -2369,13 +2535,27 @@ export class VtecxNext {
 
   /**
    * change password
-   * @param feed entry (JSON)
+   * @param newpswd new password
+   * @param oldpswd old password
+   * @param passresetToken password reset token
    * @return message feed
    */
-  changepass = async (feed:any): Promise<any> => {
+  changepass = async (newpswd:string, oldpswd?:string, passresetToken?:string): Promise<any> => {
     //console.log(`[vtecxnext changepass] start. feed=${feed}`)
     // 入力チェック
-    checkNotNull(feed, 'Feed')
+    checkNotNull(newpswd, 'new password')
+    const contributors = []
+    const newPswdContributor = {'uri' : `urn:vte.cx:auth:,${newpswd}`}
+    contributors.push(newPswdContributor)
+    if (oldpswd) {
+      const oldPswdContributor = {'uri' : `urn:vte.cx:oldphash:${oldpswd}`}
+      contributors.push(oldPswdContributor)
+    }
+    if (passresetToken) {
+      const passresetTokenContributor = {'uri' : `urn:vte.cx:passreset_token:${passresetToken}`}
+      contributors.push(passresetTokenContributor)
+    }
+    const feed = [{'contributor' : contributors}]
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_changephash`
@@ -2395,13 +2575,29 @@ export class VtecxNext {
 
   /**
    * change password by user admin
-   * @param feed entry (JSON)
+   * @param changepassByAdminInfos password change information (uid, password)
    * @return message feed
    */
-  changepassByAdmin = async (feed:any): Promise<any> => {
+  changepassByAdmin = async (changepassByAdminInfos:ChangepassByAdminInfo[]): Promise<any> => {
     //console.log(`[vtecxnext changepassByAdmin] start. feed=${feed}`)
     // 入力チェック
-    checkNotNull(feed, 'Feed')
+    checkNotNull(changepassByAdminInfos, 'password change information')
+    const feed:any = []
+    for (const changepassByAdminInfo of changepassByAdminInfos) {
+      // 入力チェック
+      checkNotNull(changepassByAdminInfo.uid, 'password change information')
+      checkNotNull(changepassByAdminInfo.pswd, 'password change information')
+
+      const entry = {
+        'contributor' : [
+          {'uri': `urn:vte.cx:auth:,${changepassByAdminInfo.pswd}`}
+        ],
+        'link' : [
+          {'___rel' : 'self', '___href' : `/_user/${changepassByAdminInfo.uid}/auth`}
+        ]
+      }
+      feed.push(entry)
+    }
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_changephashByAdmin`
@@ -2421,13 +2617,15 @@ export class VtecxNext {
 
   /**
    * change login user's account
-   * @param feed entries (JSON)
+   * @param adduserInfo change user info
    * @return message feed
    */
-  changeaccount = async (feed:any): Promise<any> => {
+  changeaccount = async (adduserInfo:AdduserInfo): Promise<any> => {
     //console.log(`[vtecxnext changeaccount] start. feed=${feed}`)
     // 入力チェック
-    checkNotNull(feed, 'Feed')
+    checkNotNull(adduserInfo, 'user info')
+    const entry = this.convertAdduserInfoToEntry(adduserInfo)
+    const feed = [entry]
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_changeaccount`
@@ -2526,13 +2724,29 @@ export class VtecxNext {
 
   /**
    * revoke users
-   * @param feed entries (JSON)
+   * @param accounts account list
+   * @param uids uid list
    * @return message feed
    */
-  revokeusers = async (feed:any): Promise<any> => {
+  revokeusers = async (accounts?:string[], uids?:string[]): Promise<any> => {
     //console.log(`[vtecxnext revokeusers] start. feed=${feed}`)
     // 入力チェック
-    checkNotNull(feed, 'Feed')
+    if (isBlank(accounts) && isBlank(uids)) {
+      throw new VtecxNextError(400, `account or uid is required.`)
+    }
+    const feed:any = []
+    if (accounts) {
+      for (const account of accounts) {
+        const entry = {'title' : account}
+        feed.push(entry)
+      }
+    }
+    if (uids) {
+      for (const uid of uids) {
+        const entry = {'link' : [{'___rel' : 'self', '___href' : `/_user/${uid}`}]}
+        feed.push(entry)
+      }
+    }
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_revokeuser`
@@ -2579,13 +2793,29 @@ export class VtecxNext {
 
   /**
    * activate users
-   * @param feed entries (JSON)
+   * @param accounts account list
+   * @param uids uid list
    * @return message feed
    */
-  activateusers = async (feed:any): Promise<any> => {
+  activateusers = async (accounts?:string[], uids?:string[]): Promise<any> => {
     //console.log(`[vtecxnext activateusers] start. feed=${feed}`)
     // 入力チェック
-    checkNotNull(feed, 'Feed')
+    if (isBlank(accounts) && isBlank(uids)) {
+      throw new VtecxNextError(400, `account or uid is required.`)
+    }
+    const feed:any = []
+    if (accounts) {
+      for (const account of accounts) {
+        const entry = {'title' : account}
+        feed.push(entry)
+      }
+    }
+    if (uids) {
+      for (const uid of uids) {
+        const entry = {'link' : [{'___rel' : 'self', '___href' : `/_user/${uid}`}]}
+        feed.push(entry)
+      }
+    }
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_activateuser`
@@ -2657,13 +2887,29 @@ export class VtecxNext {
 
   /**
    * revoke users
-   * @param feed entries (JSON)
+   * @param accounts account list
+   * @param uids uid list
    * @return message feed
    */
-  deleteusers = async (feed:any): Promise<any> => {
+  deleteusers = async (accounts?:string[], uids?:string[]): Promise<any> => {
     //console.log(`[vtecxnext deleteusers] start. feed=${feed}`)
     // 入力チェック
-    checkNotNull(feed, 'Feed')
+    if (isBlank(accounts) && isBlank(uids)) {
+      throw new VtecxNextError(400, `account or uid is required.`)
+    }
+    const feed:any = []
+    if (accounts) {
+      for (const account of accounts) {
+        const entry = {'title' : account}
+        feed.push(entry)
+      }
+    }
+    if (uids) {
+      for (const uid of uids) {
+        const entry = {'link' : [{'___rel' : 'self', '___href' : `/_user/${uid}`}]}
+        feed.push(entry)
+      }
+    }
     // vte.cxへリクエスト
     const method = 'DELETE'
     const url = `${SERVLETPATH_DATA}/?_deleteuser`
@@ -3254,6 +3500,45 @@ export class VtecxNext {
     return this.mergeOAuthUser('line', rxid)
   }
 
+  /**
+   * create group admin
+   * @param CreateGroupadminInfo group name and uid list
+   * @return message feed
+   */
+  createGroupadmin = async (createGroupadminInfos:CreateGroupadminInfo[]): Promise<any> => {
+    //console.log(`[vtecxnext createGroupadmin] start. feed=${feed}`)
+    // 入力チェック
+    checkNotNull(createGroupadminInfos, 'group name')
+    const feed:any = []
+    for (const createGroupadminInfo of createGroupadminInfos) {
+      checkNotNull(createGroupadminInfo.group, 'group name')
+      checkContainSlash(createGroupadminInfo.group, 'group name')
+      checkNotNull(createGroupadminInfo.uids, 'uid')
+      const links:any = [{'___rel' : 'self', '___href' : `/_group/${createGroupadminInfo.group}`}]
+      for (const uid of createGroupadminInfo.uids) {
+        const link = {'___rel' : 'via', '___title' : uid}
+        links.push(link)
+      }
+      const entry = {'link' : links}
+      feed.push(entry)
+    }
+    // vte.cxへリクエスト
+    const method = 'POST'
+    const url = `${SERVLETPATH_DATA}/?_creategroupadmin`
+    let response:Response
+    try {
+      response = await this.requestVtecx(method, url, JSON.stringify(feed))
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext createGroupadmin] response. status=${response.status}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    return await getJson(response)
+  }
+
   //----------------------
   /**
    * vte.cxへリクエスト
@@ -3711,11 +3996,15 @@ const buffer = async (readable: Readable):Promise<Buffer> => {
 
 /**
  * null、undefined、空文字の判定
+ * 配列で空の場合もtrueを返す。
  * @param val チェック値
  * @returns null、undefined、空文字の場合true
  */
 const isBlank = (val:any): boolean => {
   if (val === null || val === undefined || val === '') {
+    return true
+  }
+  if (Array.isArray(val) && val.length === 0) {
     return true
   }
   return false
@@ -3755,6 +4044,18 @@ const checkVtecxResponse = async (response:Response): Promise<void> => {
 const checkNotNull = (val:any, name?:string): void => {
   if (isBlank(val)) {
     throw new VtecxNextError(400, `${name ?? 'Key'} is required.`)
+  }
+}
+
+/**
+ * 文字列にスラッシュが含まれている場合エラー
+ * エラーの場合 VtecxNextError をスローする。
+ * @param val チェック文字列
+ * @param name エラーの場合の項目名称
+ */
+const checkContainSlash = (val:string, name:string): void => {
+  if (val.indexOf('/') > -1) {
+    throw new VtecxNextError(400, `${name} cannot contain a slash : ${val}`)
   }
 }
 
