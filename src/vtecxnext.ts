@@ -3539,6 +3539,41 @@ export class VtecxNext {
     return await getJson(response)
   }
 
+  /**
+   * delete group admin group
+   * @param groupNames group name list
+   * @param async execute async
+   * @return message feed
+   */
+  deleteGroupadmin = async (groupNames:string[], async?:boolean): Promise<any> => {
+    //console.log(`[vtecxnext deleteGroupadmin] start. feed=${feed}`)
+    // 入力チェック
+    checkNotNull(groupNames, 'group name')
+    const feed:any = []
+    for (const groupName of groupNames) {
+      checkNotNull(groupName, 'group name')
+      checkContainSlash(groupName, 'group name')
+      const links:any = [{'___rel' : 'self', '___href' : `/_group/${groupName}`}]
+      const entry = {'link' : links}
+      feed.push(entry)
+    }
+    // vte.cxへリクエスト
+    const method = 'DELETE'
+    const url = `${SERVLETPATH_DATA}/?_deletegroupadmin${async ? '&_async' : ''}`
+    let response:Response
+    try {
+      response = await this.requestVtecx(method, url, JSON.stringify(feed))
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext deleteGroupadmin] response. status=${response.status}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    return await getJson(response)
+  }
+
   //----------------------
   /**
    * vte.cxへリクエスト
