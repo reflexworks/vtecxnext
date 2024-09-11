@@ -47,20 +47,28 @@ export type CreateGroupadminInfo = {
 export class VtecxNext {
 
   /** Request */
-  readonly req: NextRequest
+  readonly req: NextRequest|undefined
   /** Response status */
   private resStatus: number = 200
   /** Response headers */
   private resHeaders: any = {}
   /** binary data */
   private bufferData: ArrayBuffer|null = null
+  /** Access Token (for batch) */
+  private accessToken: string|undefined
 
   /**
    * constructor
    * @param req Request
+   * @param accessToken Access token (for batch)
    */
-  constructor(req: NextRequest) {
-    this.req = req;
+  constructor(req?: NextRequest, accessToken?: string) {
+    if (req) {
+      this.req = req
+    } else {
+      this.req = undefined
+      this.accessToken = accessToken
+    }
   }
 
   /**
@@ -69,6 +77,9 @@ export class VtecxNext {
    * @returns parameter value
    */
   getParameter = (name:string): string|undefined => {
+    if (!this.req) {
+      throw new VtecxNextError(421, 'Request is required.')
+    }
     const url = new URL(this.req.url)
     const params = url.searchParams
     const val = params.get(name)
@@ -95,6 +106,9 @@ export class VtecxNext {
    * @returns buffer
    */
   buffer = async (readable?: Readable):Promise<Uint8Array> => {
+    if (!this.req) {
+      throw new VtecxNextError(421, 'Request is required.')
+    }
     let tmpReadable:Readable
     if (readable === undefined || readable === null) {
       const arrayBuffer = await this.req.arrayBuffer()
@@ -133,6 +147,9 @@ export class VtecxNext {
    */
   checkXRequestedWith = (): Response|undefined => {
     //console.log(`[vtecxnext checkXRequestedWith] start.`)
+    if (!this.req) {
+      throw new VtecxNextError(421, 'Request is required.')
+    }
     let hasX:boolean = false
     this.req.headers.forEach((value, key, parent) => {
       //console.log(`[vtecxnext checkXRequestedWith] key=${key} value=${value}`)
@@ -3056,6 +3073,9 @@ export class VtecxNext {
    */
   savefiles = async (uri:string, bysize?:boolean): Promise<any> => {
     //console.log(`[vtecxnext savefiles] start. uri=${uri}`)
+    if (!this.req) {
+      throw new VtecxNextError(421, 'Request is required.')
+    }
     // キー入力値チェック
     checkUri(uri)
 
@@ -3120,10 +3140,11 @@ export class VtecxNext {
    * @param uri key
    * @param bysize true if registering with specified size
    * @param filename attachment file name
+   * @param arrayBuffer content (for batch)
    * @return message
    */
-  putcontent = async (uri:string, filename?:string): Promise<any> => {
-    return this.putcontentProc(uri, false, filename)
+  putcontent = async (uri:string, filename?:string, arrayBuffer?:ArrayBuffer): Promise<any> => {
+    return this.putcontentProc(uri, false, filename, arrayBuffer)
   }
 
   /**
@@ -3131,22 +3152,31 @@ export class VtecxNext {
    * @param uri key
    * @param bysize true if registering with specified size
    * @param filename attachment file name
+   * @param arrayBuffer content (for batch)
    * @return message
    */
-  private putcontentProc = async (uri:string, bysize?:boolean, filename?:string): Promise<any> => {
+  private putcontentProc = async (uri:string, bysize?:boolean, filename?:string, arrayBuffer?:ArrayBuffer): Promise<any> => {
     //console.log(`[vtecxnext putcontent] start. uri=${uri} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
+    if (!this.req && !arrayBuffer) {
+      throw new VtecxNextError(421, 'Request is required.')
+    }
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_content${bysize ? '&_bysize' : ''}`
     //console.log(`[vtecxnext putcontent] request. url=${url}`)
-    const headers:any = {'Content-Type' : this.req.headers.get('content-type')}
+    const headers:any = {'Content-Type' : this.req?.headers.get('content-type')}
     if (filename) {
       headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(filename)}"`
     }
     //const buf = await buffer(this.req)
-    const buf = await this.req.arrayBuffer()
+    let buf
+    if (arrayBuffer) {
+      buf = arrayBuffer
+    } else if (this.req) {
+      buf = await this.req.arrayBuffer()
+    }
     let response:Response
     try {
       response = await this.requestVtecx(method, url, buf, headers)
@@ -3179,6 +3209,9 @@ export class VtecxNext {
    */
   postcontent = async (parenturi:string, extension?:string, filename?:string): Promise<any> => {
     //console.log(`[vtecxnext postcontent] start. parenturi=${parenturi} extension=${extension} filename=${filename}`)
+    if (!this.req) {
+      throw new VtecxNextError(421, 'Request is required.')
+    }
     // キー入力値チェック
     checkUri(parenturi)
     // vte.cxへリクエスト
@@ -3285,7 +3318,7 @@ export class VtecxNext {
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_content&_signedurl`
     //console.log(`[vtecxnext getSignedUrlToPutContent] request. url=${url}`)
-    const headers:any = {'Content-Type' : this.req.headers.get('content-type')}
+    const headers:any = {'Content-Type' : this.req?.headers?.get('content-type')}
     if (filename) {
       headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(filename)}"`
     }
@@ -3317,7 +3350,7 @@ export class VtecxNext {
     const method = 'POST'
     const url = `${SERVLETPATH_PROVIDER}${parenturi}?_content&_signedurl${extension ? '&_ext=' + extension : ''}`
     //console.log(`[vtecxnext getSignedUrlToPostContent] request. url=${url}`)
-    const headers:any = {'Content-Type' : this.req.headers.get('content-type')}
+    const headers:any = {'Content-Type' : this.req?.headers?.get('content-type')}
     if (filename) {
       headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(filename)}"`
     }
@@ -3590,6 +3623,9 @@ export class VtecxNext {
     // cookieの値をvte.cxへのリクエストヘッダに設定
     const cookie = this.req ? this.req.headers.get('cookie') : undefined
     const headers:any = cookie ? {'Cookie' : cookie} : {}
+    if (this.accessToken) {
+      headers.Authorization = `Token ${this.accessToken}`
+    }
     if (additionalHeaders) {
       //console.log(`[vtecxnext requestVtecx] additionalHeaders for`)
       for (const key in additionalHeaders) {
@@ -3660,6 +3696,9 @@ export class VtecxNext {
    */
   private oauth = async (provider:string, oauthUrl:string): Promise<boolean> => {
     //console.log(`[vtecxnext oauth] start. provider=${provider} oauthUrl=${oauthUrl}`)
+    if (!this.req) {
+      throw new VtecxNextError(421, 'Request is required.')
+    }
 
     // TODO reCAPTCHAを必須とすべき?
 
@@ -3711,6 +3750,9 @@ export class VtecxNext {
    */
   private oauthGetAccesstoken = async (provider:string, accesstokenUrl:string): Promise<any> => {
     //console.log(`[vtecxnext oauthGetAccesstoken] start. provider=${provider} oauthUrl=${accesstokenUrl}`)
+    if (!this.req) {
+      throw new VtecxNextError(421, 'Request is required.')
+    }
 
     // stateチェック
     const parseUrl = urlmodule.parse(this.req.url ?? '', true)
@@ -3762,13 +3804,17 @@ export class VtecxNext {
       'client_id': client_id,
       'client_secret': client_secret
     }
-    const accesstokenBody = createURLSearchParams(accessTokenData);
+    const accesstokenBody = createURLSearchParams(accessTokenData).toString()
 
     //const accesstokenBodyStr = `grant_type=authorization_code&code=${code}&redirect_uri=${encodeRedirect_uri}&client_id=${client_id}&client_secret=${client_secret}`
     //console.log(`[vtecxnext oauthGetAccesstoken] accesstokenUrl=${accesstokenUrl}`)
     //console.log(`[vtecxnext oauthGetAccesstoken] accesstokenBodyStr=${accesstokenBodyStr}`)
     //const accesstokenBody = Buffer.from(accesstokenBodyStr, 'utf-8')
     const requestInit:RequestInit = {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': String(accesstokenBody.length),
+      },    
       body: accesstokenBody,
       method: accesstokenMethod,
       cache: 'no-cache',
@@ -3953,32 +3999,29 @@ export class FetchError extends VtecxNextError {
  * vte.cxへリクエスト
  * @param method メソッド
  * @param url サーブレットパス以降のURL
- * @param headers リクエストヘッダ。連想配列で指定。
+ * @param pHeaders リクエストヘッダ。連想配列で指定。
  * @param body リクエストデータ
  * @param mode RequestMode ("cors" | "navigate" | "no-cors" | "same-origin")
  * @returns promise
  */
-const fetchVtecx = async (method:string, url:string, headers:any, body?:any, mode?:RequestMode): Promise<Response> => {
+const fetchVtecx = async (method:string, url:string, pHeaders:any, body?:any, mode?:RequestMode): Promise<Response> => {
   //console.log(`[vtecxnext fetchVtecx] url=${process.env.VTECX_URL}${url}`)
-  headers['X-Requested-With'] = 'XMLHttpRequest'
+  const headers:[string, string][] = []
+  if (pHeaders) {
+    for (const key in pHeaders) {
+      headers.push([key, pHeaders[key]])
+    }
+  }
+  headers.push(['X-Requested-With', 'XMLHttpRequest'])
   if (VTECX_SERVICENAME) {
-    headers['X-SERVICENAME'] = VTECX_SERVICENAME
+    headers.push(['X-SERVICENAME', VTECX_SERVICENAME])
   }
   const apiKey = process.env.VTECX_APIKEY
   if (apiKey && !url.startsWith(SERVLETPATH_DATA)) {
-    //headers['Authorization'] = `APIKey ${apiKey}`
     const apiKeyVal = `APIKey ${apiKey}`
-    if (headers.Authorization) {
-      if (Array.isArray(headers.Authorization)) {
-        headers.Authorization.push(apiKeyVal)
-      } else {
-        const tmp = headers.Authorization
-        headers.Authorization = [tmp, apiKeyVal]
-      }
-    } else {
-      headers.Authorization = apiKeyVal
-    }
+    headers.push(['Authorization', apiKeyVal])
   }
+
   //console.log(`[vtecxnext fetchVtecx] headers = ${JSON.stringify(headers)}`)
   const requestInit:RequestInit = {
     body: body,
@@ -4177,7 +4220,6 @@ const editSqlArgument = (sql:string, values?:any[], parent?:string): any => {
   const feed:any[] = [entry]
   return feed
 }
-
 /**
  * SQLインジェクション対策を行い、安全に値を設定した上で、feedにセットします.
  * @param sqls SQLリスト
