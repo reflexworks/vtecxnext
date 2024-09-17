@@ -56,6 +56,8 @@ export class VtecxNext {
   private bufferData: ArrayBuffer|null = null
   /** Access Token (for batch) */
   private accessToken: string|undefined
+  /** login cookies */
+  private loginCookies: any = {}
 
   /**
    * constructor
@@ -389,6 +391,8 @@ export class VtecxNext {
     }
     // vte.cxからのset-cookieを転記
     this.setCookie(response)
+    // 引き続きAPIで処理を行う場合のため、set-cookie情報を保持しておく
+    this.setLoginCookie(response)
     const data = await response.json()
     return {status:response.status, message:data.feed.title}
   }
@@ -3621,7 +3625,8 @@ export class VtecxNext {
    */
   private requestVtecx = async (method:string, url:string, body?:any, additionalHeaders?:any, targetService?:string, mode?:RequestMode): Promise<Response> => {
     // cookieの値をvte.cxへのリクエストヘッダに設定
-    const cookie = this.req ? this.req.headers.get('cookie') : undefined
+    const cookie = this.editRequestCookie()
+    //console.log(`[requestVtecx] cookie = ${cookie}`)
     const headers:any = cookie ? {'Cookie' : cookie} : {}
     if (this.accessToken) {
       headers.Authorization = `Token ${this.accessToken}`
@@ -3666,6 +3671,52 @@ export class VtecxNext {
       //console.log(`[vtecxnext setCookie] setCookieVal=${setCookieVal}`)
       this.resHeaders['set-cookie'] = setCookieVal
     }
+  }
+
+  /**
+   * ログイン時にレスポンスされたvte.cxからのset-cookieを保持する。
+   * @param response vte.cxからのレスポンス
+   */
+  private setLoginCookie = (response:Response): void => {
+    // set-cookieの値をレスポンスヘッダ格納変数にセット
+    let setCookieVal = response.headers.get('set-cookie')
+    if (setCookieVal) {
+      const tmpCookies = setCookieVal.split(';')
+      for (const tmpCookie of tmpCookies) {
+        const tmpKeyVal = tmpCookie.split('=')
+        this.loginCookies[tmpKeyVal[0]] = tmpKeyVal[1]
+      }
+    }
+  }
+
+  /**
+   * ログイン後のCookie編集
+   * @returns cookie
+   */
+  private editRequestCookie = (): string|null => {
+    let cookie = this.req ? this.req.headers.get('cookie') : null
+    if (!this.loginCookies) {
+      return cookie
+    }
+    let retCookie:string = ''
+    if (cookie) {
+      const tmpCookies = cookie.split(';')
+      for (const tmpCookie of tmpCookies) {
+        const tmpKeyVal = tmpCookie.trim().split('=')
+        const tmpName = tmpKeyVal[0]
+        const tmpVal = tmpKeyVal[1]
+        if (!this.loginCookies.hasOwnProperty(tmpName)) {
+          retCookie = `${retCookie}${tmpName}=${tmpVal}; `
+        //} else {
+          //console.log(`[editRequestCookie] hasOwnProperty (not set) : ${tmpName}=${tmpVal}`)
+        }
+      }
+    }
+    for (const tmpName in this.loginCookies) {
+      const tmpVal = this.loginCookies[tmpName]
+      retCookie = `${retCookie}${tmpName}=${tmpVal};`
+    }
+    return retCookie
   }
 
   /**
@@ -4009,6 +4060,7 @@ const fetchVtecx = async (method:string, url:string, pHeaders:any, body?:any, mo
   const headers:[string, string][] = []
   if (pHeaders) {
     for (const key in pHeaders) {
+      //console.log(`[vtecxnext fetchVtecx] request header = ${key}: ${pHeaders[key]}`)
       headers.push([key, pHeaders[key]])
     }
   }
