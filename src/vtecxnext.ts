@@ -44,6 +44,12 @@ export type CreateGroupadminInfo = {
   uids:string[],
 }
 
+export type PaginationInfo = {
+  lastPageNumber:number,
+  countWithinRange:number,
+  hasNext:boolean,
+}
+
 export class VtecxNext {
 
   /** Request */
@@ -1364,9 +1370,9 @@ export class VtecxNext {
    * @param uri key and conditions
    * @param pagerange page range
    * @param targetService target service name (for service linkage)
-   * @return feed Maximum number of pages in the specified page range, and total count.
+   * @return Maximum number of pages in the specified page range, and total count.
    */
-  pagination = async (uri:string, pagerange:string, targetService?:string): Promise<any> => {
+  pagination = async (uri:string, pagerange:string, targetService?:string): Promise<PaginationInfo> => {
     //console.log('[vtecxnext pagination] start.')
     // キー入力値チェック
     checkUri(uri)
@@ -1384,8 +1390,18 @@ export class VtecxNext {
     this.setCookie(response)
     // レスポンスのエラーチェック
     await checkVtecxResponse(response)
-    // 戻り値
-    return await getJson(response)
+    // 戻り値編集
+    const respJson = await getJson(response)
+    let hasNext = false
+    if (respJson.feed.link && respJson.feed.link[0]?.___rel === 'next') {
+      hasNext = true
+    }
+    const pagenationInfo:PaginationInfo = {
+      'lastPageNumber': Number(respJson.feed.title),
+      'countWithinRange': Number(respJson.feed.subtitle),
+      'hasNext': hasNext
+    }
+    return pagenationInfo
   }
 
   /**
