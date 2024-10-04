@@ -1444,16 +1444,16 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return feed (entry array)
    */
-  practicalPaging = async (uri:string, num:number, targetService?:string): Promise<any> => {
-    //console.log(`[practicalPaging] start. uri=${uri} num=${num} ${targetService ? 'targetService=' + targetService : ''}`)
+  getPageWithPagination = async (uri:string, num:number, targetService?:string): Promise<any> => {
+    //console.log(`[getPageWithPagination] start. uri=${uri} num=${num} ${targetService ? 'targetService=' + targetService : ''}`)
 
     // ページ数が1の場合、カーソルリスト作成処理を行う
     if (num === 1) {
-      //console.log(`[practicalPaging] pagination start. uri=${uri}`)
-      const paginationInfo = await this.pagination(uri, `1,${String(PAGINATION_NUM)}`)
+      //console.log(`[getPageWithPagination] pagination start. uri=${uri}`)
+      const paginationInfo = await this.pagination(uri, `1,${String(PAGINATION_NUM)}`, targetService)
       if (paginationInfo.hasNext) {
         // 次のカーソルリスト作成 (非同期のまま)
-        this.nextPagination(uri, PAGINATION_NUM)
+        this.nextPagination(uri, PAGINATION_NUM, targetService)
       }
       if (paginationInfo.lastPageNumber === 0) {
         // データが存在しない場合終了
@@ -1462,9 +1462,9 @@ export class VtecxNext {
     }
 
     // ページ取得
-    //console.log(`[practicalPaging] getPage start. uri=${uri} num=${num}`)
+    //console.log(`[getPageWithPagination] getPage start. uri=${uri} num=${num}`)
     try {
-      return await this.getPage(uri, num)
+      return await this.getPage(uri, num, targetService)
     } catch (error) {
       if (isVtecxNextError(error)) {
         // ステータス400で「There is no designated page. The last page: ページ数」の場合、空データを返す。
@@ -1482,13 +1482,14 @@ export class VtecxNext {
    * @param vtecxnext 
    * @param uri キーとパラメータ
    * @param prevLastPage 前回の最終ページ
+   * @param targetService 対象サービス
    */
-  private nextPagination = async (uri:string, prevLastPage:number) => {
+  private nextPagination = async (uri:string, prevLastPage:number, targetService?:string) => {
     const firstPage = prevLastPage + 1
     const lastPage = prevLastPage + prevLastPage
-    const paginationInfo = await this.pagination(uri, `${String(firstPage)},${String(lastPage)}`)
+    const paginationInfo = await this.pagination(uri, `${String(firstPage)},${String(lastPage)}`, targetService)
     if (paginationInfo.hasNext) {
-      await this.nextPagination(uri, lastPage)
+      await this.nextPagination(uri, lastPage, targetService)
     }
   }
 
