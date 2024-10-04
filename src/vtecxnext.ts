@@ -19,6 +19,8 @@ const SERVLETPATH_PROVIDER = '/p'
 const SERVLETPATH_OAUTH = '/o'
 /** header : nextpage */
 const HEADER_NEXTPAGE = 'x-vtecx-nextpage'
+/** The number of cursors to create (for practical paging) */
+const PAGINATION_NUM = 7
 
 export type StatusMessage = {
   status:number,
@@ -1409,7 +1411,7 @@ export class VtecxNext {
    * @param uri key and conditions
    * @param num page number
    * @param targetService target service name (for service linkage)
-   * @return feed Maximum number of pages in the specified page range, and total count.
+   * @return feed (entry array)
    */
   getPage = async (uri:string, num:number, targetService?:string): Promise<any> => {
     //console.log(`[vtecxnext getPage] start. uri=${uri} num=${num}`)
@@ -1432,6 +1434,62 @@ export class VtecxNext {
     await checkVtecxResponse(response)
     // 戻り値
     return await getJson(response)
+  }
+
+  /**
+   * practical paging
+   * If you specify page 1, a new cursor list will be created.
+   * @param uri key and conditions
+   * @param num page number
+   * @param targetService target service name (for service linkage)
+   * @return feed (entry array)
+   */
+  practicalPaging = async (uri:string, num:number, targetService?:string): Promise<any> => {
+    //console.log(`[practicalPaging] start. uri=${uri} num=${num} ${targetService ? 'targetService=' + targetService : ''}`)
+
+    // ページ数が1の場合、カーソルリスト作成処理を行う
+    if (num === 1) {
+      //console.log(`[practicalPaging] pagination start. uri=${uri}`)
+      const paginationInfo = await this.pagination(uri, `1,${String(PAGINATION_NUM)}`)
+      if (paginationInfo.hasNext) {
+        // 次のカーソルリスト作成 (非同期のまま)
+        this.nextPagination(uri, PAGINATION_NUM)
+      }
+      if (paginationInfo.lastPageNumber === 0) {
+        // データが存在しない場合終了
+        return undefined
+      }
+    }
+
+    // ページ取得
+    //console.log(`[practicalPaging] getPage start. uri=${uri} num=${num}`)
+    try {
+      return await this.getPage(uri, num)
+    } catch (error) {
+      if (isVtecxNextError(error)) {
+        // ステータス400で「There is no designated page. The last page: ページ数」の場合、空データを返す。
+        if (error.status === 400 && error.message.startsWith('There is no designated page.')) {
+          return undefined
+        }
+      }
+      throw error
+    }
+  }
+
+  /**
+   * ページングのカーソルリスト作成処理
+   * 続きがある場合、次のカーソルリスト作成処理を実行する
+   * @param vtecxnext 
+   * @param uri キーとパラメータ
+   * @param prevLastPage 前回の最終ページ
+   */
+  private nextPagination = async (uri:string, prevLastPage:number) => {
+    const firstPage = prevLastPage + 1
+    const lastPage = prevLastPage + prevLastPage
+    const paginationInfo = await this.pagination(uri, `${String(firstPage)},${String(lastPage)}`)
+    if (paginationInfo.hasNext) {
+      await this.nextPagination(uri, lastPage)
+    }
   }
 
   /**
@@ -4059,6 +4117,29 @@ export class FetchError extends VtecxNextError {
     //this.url = url
     //this.requestInit = requestInit
   }
+}
+
+/**
+ * VtecxNextError型かどうかチェック
+ * インターフェースの判定には型ガード関数を使う
+ * @param value チェックオブジェクト
+ * @returns VtecxNextError型の場合true
+ */
+export const isVtecxNextError = (value:unknown):value is VtecxNextError => {
+  // 値がオブジェクトであるかの判定
+  if (typeof value !== "object" || value === null) {
+    return false
+  }
+  const { status, message } = value as Record<keyof VtecxNextError, unknown>;
+  // statusプロパティーが数値型かを判定
+  if (typeof status !== "number") {
+    return false
+  }
+  // messageプロパティーが文字列型かを判定
+  if (typeof message !== "string") {
+    return false
+  }
+  return true
 }
 
 //---------------------------------------------
