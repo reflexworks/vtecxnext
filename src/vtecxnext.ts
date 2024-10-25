@@ -21,6 +21,8 @@ const SERVLETPATH_OAUTH = '/o'
 const HEADER_NEXTPAGE = 'x-vtecx-nextpage'
 /** The number of cursors to create (for practical paging) */
 const PAGINATION_NUM = 7
+/** pagination memorysort */
+const MEMORYSORT = 'memorysort'
 
 export type StatusMessage = {
   status:number,
@@ -50,6 +52,7 @@ export type PaginationInfo = {
   lastPageNumber:number,
   countWithinRange:number,
   hasNext:boolean,
+  isMemorysort:boolean,
 }
 
 export class VtecxNext {
@@ -1401,7 +1404,8 @@ export class VtecxNext {
     const pagenationInfo:PaginationInfo = {
       'lastPageNumber': Number(respJson.feed.title),
       'countWithinRange': Number(respJson.feed.subtitle),
-      'hasNext': hasNext
+      'hasNext': hasNext,
+      'isMemorysort': respJson.feed.rights === MEMORYSORT
     }
     return pagenationInfo
   }
@@ -1451,7 +1455,8 @@ export class VtecxNext {
     if (num === 1) {
       //console.log(`[getPageWithPagination] pagination start. uri=${uri}`)
       const paginationInfo = await this.pagination(uri, `1,${String(PAGINATION_NUM)}`, targetService)
-      if (paginationInfo.hasNext) {
+      // メモリソートの場合は全てのカーソルリストを作成する
+      if (paginationInfo.hasNext && !paginationInfo.isMemorysort) {
         // 次のカーソルリスト作成 (非同期のまま)
         this.nextPagination(uri, PAGINATION_NUM, targetService)
       }
