@@ -2309,20 +2309,17 @@ export class VtecxNext {
     //console.log(`[vtecxnext addGroupByAdmin] start. group=${group} selfid=${selfid} uids=${uids}`)
     // 入力チェック
     checkUri(group, 'group key')
+    checkNotNull(uids, 'uid')
     //checkNotNull(selfid, 'selfid (hierarchical name under my group alias)')
     // vte.cxへリクエスト
     const method = 'POST'
     const url = `${SERVLETPATH_PROVIDER}${group}?_addgroupByAdmin${selfid ? '&_selfid=' + selfid : ''}`
-    let value:any
-    if (uids) {
-      const feed = []
-      for (const uid of uids) {
-        const entry = {'link' : [{'___rel' : 'self', '___href' : `/_user/${uid}`}]}
-        feed.push(entry)
-      }
-      value = JSON.stringify(feed)
+    const feed = []
+    for (const uid of uids) {
+      const entry = {'link' : [{'___rel' : 'self', '___href' : `/_user/${uid}`}]}
+      feed.push(entry)
     }
-    checkNotNull(value, 'uid')
+    const value = JSON.stringify(feed)
 
     let response:Response
     try {
@@ -4232,7 +4229,7 @@ const isBlank = (val:any): boolean => {
   if (val === null || val === undefined || val === '') {
     return true
   }
-  if (Array.isArray(val) && val.length === 0) {
+  if (Array.isArray(val) && val.length <= 0) {
     return true
   }
   return false
