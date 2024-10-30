@@ -3688,6 +3688,37 @@ export class VtecxNext {
     return await getJson(response)
   }
 
+  /**
+   * get property
+   * @param name property name
+   * @return property value
+   */
+  property = async (name:string): Promise<string|null> => {
+    //console.log('[vtecxnext property] start.')
+    // 入力チェック
+    checkNotNull(name, 'Name')
+    // vte.cxへリクエスト
+    const method = 'GET'
+    const url = `${SERVLETPATH_PROVIDER}/?_property=${name}`
+    let response:Response
+    try {
+      response = await this.requestVtecx(method, url)
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext property] response=${response}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    // 戻り値
+    if (response.status === 204) {
+      return null
+    }
+    const data = await getJson(response)
+    return data.feed.title
+  }
+
   //----------------------
   /**
    * vte.cxへリクエスト
