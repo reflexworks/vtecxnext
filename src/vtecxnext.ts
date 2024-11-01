@@ -155,7 +155,7 @@ export class VtecxNext {
 
   /**
    * X-Requested-With header check.
-   * If not specified, set status 417 to the response.
+   * If not specified, set status 401 to the response.
    * @return Response if no X-Requested-With header is specified
    */
   checkXRequestedWith = (): Response|undefined => {
@@ -167,19 +167,19 @@ export class VtecxNext {
     this.req.headers.forEach((value, key, parent) => {
       //console.log(`[vtecxnext checkXRequestedWith] key=${key} value=${value}`)
       if (!hasX) {
-        if ((key.startsWith('x-') || key.startsWith('X-')) &&
-            key.indexOf('invoke') === -1 &&
-            value !== undefined && value !== '') {
+        const keyLower = key.toLocaleLowerCase()
+        if ((keyLower.startsWith('x-') && !keyLower.startsWith('x-forwarded')) ||
+            keyLower === 'authorization') {
           //console.log(`[vtecxnext checkXRequestedWith] key=${key} value=${value}`)
           hasX = true
-        }  
+        }
       }
     })
     //console.log(`[vtecxnext checkXRequestedWith] end.`)
 
     if (!hasX) {
       return new Response('', {
-        status: 417
+        status: 401
       })
     }
   }
