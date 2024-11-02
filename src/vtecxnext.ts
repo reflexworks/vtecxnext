@@ -2380,7 +2380,7 @@ export class VtecxNext {
     // 入力チェック
     checkUri(group)
     // vte.cxへリクエスト
-    const method = 'DELETE'
+    const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${group}?_leavegroup`
     let response:Response
     try {
@@ -2395,6 +2395,42 @@ export class VtecxNext {
     await checkVtecxResponse(response)
     // 戻り値
     return true
+  }
+
+  /**
+   * leave group by admin
+   * @param uids uid list
+   * @param group group
+   * @return feed
+   */
+  leaveGroupByAdmin = async (uids:string[], group:string): Promise<any> => {
+    //console.log(`[vtecxnext leaveGroupByAdmin] start. group=${group} uids=${uids}`)
+    // 入力チェック
+    checkUri(group, 'group key')
+    checkNotNull(uids, 'uid')
+    // vte.cxへリクエスト
+    const method = 'PUT'
+    const url = `${SERVLETPATH_PROVIDER}${group}?_leavegroupByAdmin`
+    const feed = []
+    for (const uid of uids) {
+      const entry = {'link' : [{'___rel' : 'self', '___href' : `/_user/${uid}`}]}
+      feed.push(entry)
+    }
+    const value = JSON.stringify(feed)
+
+    let response:Response
+    try {
+      response = await this.requestVtecx(method, url, value)
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext leaveGroupByAdmin] response. status=${response.status}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    // 戻り値
+    return await getJson(response)
   }
 
   /**
