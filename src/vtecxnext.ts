@@ -2464,9 +2464,9 @@ export class VtecxNext {
   /**
    * Get groups
    * @param uri group key
-   * @return feed (entry array)
+   * @return group array
    */
-  getGroups = async (): Promise<any> => {
+  getGroups = async (): Promise<string[]|null> => {
     //console.log('[vtecxnext getGroups] start.')
     // vte.cxへリクエスト
     const method = 'GET'
@@ -2483,7 +2483,18 @@ export class VtecxNext {
     // レスポンスのエラーチェック
     await checkVtecxResponse(response)
     // 戻り値
-    return await getJson(response)
+    const feed = await getJson(response)
+    //console.log(`[vtecxnext getGroups] feed=${JSON.stringify(feed)}`)
+    if (feed && Array.isArray(feed) && feed.length > 0) {
+      const groups:string[] = []
+      for (const entry of feed) {
+        if (entry.link && entry.link.length > 0) {
+          groups.push(entry.link[0].___href)
+        }
+      }
+      return groups
+    }
+    return null
   }
 
   /**
