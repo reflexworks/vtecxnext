@@ -2820,7 +2820,7 @@ export class VtecxNext {
    * @param account account
    * @return user status
    */
-  userstatus = async (account?:string): Promise<any> => {
+  userstatus = async (account?:string): Promise<string|any> => {
     //console.log('[vtecxnext userstatus] start.')
     // vte.cxへリクエスト
     const method = 'GET'
@@ -2836,8 +2836,12 @@ export class VtecxNext {
     this.setCookie(response)
     // レスポンスのエラーチェック
     await checkVtecxResponse(response)
+    const retJson = await getJson(response)
     // 戻り値
-    return await getJson(response)
+    if (account && retJson) {
+      return retJson.summary
+    }
+    return retJson
   }
 
   /**
