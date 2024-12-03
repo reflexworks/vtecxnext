@@ -25,48 +25,47 @@ const PAGINATION_NUM = 7
 const MEMORYSORT = 'memorysort'
 
 export type StatusMessage = {
-  status:number,
-  message:string,
+  status: number
+  message: string
 }
 
 export type AdduserInfo = {
-  username?:string,
-  pswd?:string,
-  nickname?:string,
-  emailSubject?:string,
-  emailText?:string,
-  emailHtml?:string,
+  username?: string
+  pswd?: string
+  nickname?: string
+  emailSubject?: string
+  emailText?: string
+  emailHtml?: string
 }
 
 export type ChangepassByAdminInfo = {
-  uid:string,
-  pswd:string,
+  uid: string
+  pswd: string
 }
 
 export type CreateGroupadminInfo = {
-  group:string,
-  uids:string[],
+  group: string
+  uids: string[]
 }
 
 export type PaginationInfo = {
-  lastPageNumber:number,
-  countWithinRange:number,
-  hasNext:boolean,
-  isMemorysort:boolean,
+  lastPageNumber: number
+  countWithinRange: number
+  hasNext: boolean
+  isMemorysort: boolean
 }
 
 export class VtecxNext {
-
   /** Request */
-  readonly req: NextRequest|undefined
+  readonly req: NextRequest | undefined
   /** Response status */
   private resStatus: number = 200
   /** Response headers */
   private resHeaders: any = {}
   /** binary data */
-  private bufferData: ArrayBuffer|null = null
+  private bufferData: ArrayBuffer | null = null
   /** Access Token (for batch) */
-  private accessToken: string|undefined
+  private accessToken: string | undefined
   /** login cookies */
   private loginCookies: any = {}
 
@@ -89,7 +88,7 @@ export class VtecxNext {
    * @param name parameter name
    * @returns parameter value
    */
-  getParameter = (name:string): string|undefined => {
+  getParameter = (name: string): string | undefined => {
     if (!this.req) {
       throw new VtecxNextError(421, 'Request is required.')
     }
@@ -107,7 +106,7 @@ export class VtecxNext {
    * @param name パラメータ名
    * @return URLパラメータがある場合true
    */
-  hasParameter = (name:string): boolean => {
+  hasParameter = (name: string): boolean => {
     const tmpVal = this.getParameter(name)
     //console.log(`[hasParameter] ${name}=${tmpVal}`)
     return tmpVal === undefined || tmpVal === null ? false : true
@@ -118,11 +117,11 @@ export class VtecxNext {
    * @param readable if undefined, return the request buffer.
    * @returns buffer
    */
-  buffer = async (readable?: Readable):Promise<Uint8Array> => {
+  buffer = async (readable?: Readable): Promise<Uint8Array> => {
     if (!this.req) {
       throw new VtecxNextError(421, 'Request is required.')
     }
-    let tmpReadable:Readable
+    let tmpReadable: Readable
     if (readable === undefined || readable === null) {
       const arrayBuffer = await this.req.arrayBuffer()
       return new Uint8Array(arrayBuffer)
@@ -137,7 +136,7 @@ export class VtecxNext {
    * @param val チェック値
    * @returns null、undefined、空文字の場合true
    */
-  isBlank = (val:any): boolean => {
+  isBlank = (val: any): boolean => {
     return isBlank(val)
   }
 
@@ -146,7 +145,7 @@ export class VtecxNext {
    * @param val 文字列
    * @returns 変換した文字列
    */
-  null2blank = (val:string|undefined|null): string => {
+  null2blank = (val: string | undefined | null): string => {
     if (val == undefined || val == null) {
       return ''
     }
@@ -158,18 +157,20 @@ export class VtecxNext {
    * If not specified, set status 401 to the response.
    * @return Response if no X-Requested-With header is specified
    */
-  checkXRequestedWith = (): Response|undefined => {
+  checkXRequestedWith = (): Response | undefined => {
     //console.log(`[vtecxnext checkXRequestedWith] start.`)
     if (!this.req) {
       throw new VtecxNextError(421, 'Request is required.')
     }
-    let hasX:boolean = false
+    let hasX: boolean = false
     this.req.headers.forEach((value, key, parent) => {
       //console.log(`[vtecxnext checkXRequestedWith] key=${key} value=${value}`)
       if (!hasX) {
         const keyLower = key.toLocaleLowerCase()
-        if ((keyLower.startsWith('x-') && !keyLower.startsWith('x-forwarded')) ||
-            keyLower === 'authorization') {
+        if (
+          (keyLower.startsWith('x-') && !keyLower.startsWith('x-forwarded')) ||
+          keyLower === 'authorization'
+        ) {
           //console.log(`[vtecxnext checkXRequestedWith] key=${key} value=${value}`)
           hasX = true
         }
@@ -189,7 +190,7 @@ export class VtecxNext {
    * @param name name
    * @param value value
    */
-  setResponseHeader = (name:string, value:string): void => {
+  setResponseHeader = (name: string, value: string): void => {
     this.resHeaders[name] = value
   }
 
@@ -199,7 +200,7 @@ export class VtecxNext {
    * @param data response data
    * @returns Response object
    */
-  response = (status?:number, data?:any): Response => {
+  response = (status?: number, data?: any): Response => {
     if (status) {
       this.resStatus = status
     }
@@ -207,8 +208,7 @@ export class VtecxNext {
     if (this.resStatus !== 204) {
       if (data) {
         if (data instanceof Object) {
-          if (!('content-type' in this.resHeaders) &&
-              !('Content-Type' in this.resHeaders)) {
+          if (!('content-type' in this.resHeaders) && !('Content-Type' in this.resHeaders)) {
             this.resHeaders['content-type'] = 'application/json'
           }
           resData = JSON.stringify(data)
@@ -234,8 +234,8 @@ export class VtecxNext {
    * @param message message
    * @return true
    */
-  sendMessage = (statusCode:number, message:string): Response => {
-    const resJson = {'feed' : {'title' : message}}
+  sendMessage = (statusCode: number, message: string): Response => {
+    const resJson = { feed: { title: message } }
     return this.response(statusCode, resJson)
   }
 
@@ -262,7 +262,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'GET'
     const url = '/d/?_now'
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -285,7 +285,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'GET'
     const url = '/d/?_uid'
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -310,7 +310,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'GET'
     const url = '/d/?_account'
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -324,7 +324,7 @@ export class VtecxNext {
     // 戻り値
     const data = await getJson(response)
     return data.feed.title
- }
+  }
 
   /**
    * get login service
@@ -335,7 +335,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'GET'
     const url = '/d/?_service'
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -360,7 +360,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'GET'
     const url = '/d/?_getrxid'
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -384,7 +384,7 @@ export class VtecxNext {
    * @param reCaptchaToken reCAPTCHA token
    * @return status and message
    */
-  login = async (wsse:string, reCaptchaToken?:string): Promise<StatusMessage> => {
+  login = async (wsse: string, reCaptchaToken?: string): Promise<StatusMessage> => {
     //console.log('[vtecxnext login] start.')
     // 入力チェック
     checkNotNull(wsse, 'Authentication information')
@@ -393,8 +393,8 @@ export class VtecxNext {
     const param = reCaptchaToken ? `&g-recaptcha-token=${reCaptchaToken}` : ''
     const method = 'GET'
     const url = `${SERVLETPATH_DATA}/?_login${param}`
-    const headers = {'X-WSSE' : `${wsse}`}
-    let response:Response
+    const headers = { 'X-WSSE': `${wsse}` }
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, null, headers)
     } catch (e) {
@@ -405,7 +405,7 @@ export class VtecxNext {
     // 引き続きAPIで処理を行う場合のため、set-cookie情報を保持しておく
     this.setLoginCookie(response)
     const data = await response.json()
-    return {status:response.status, message:data.feed.title}
+    return { status: response.status, message: data.feed.title }
   }
 
   /**
@@ -414,7 +414,7 @@ export class VtecxNext {
    * @param rxid RXID
    * @return status and message
    */
-  loginWithRxid = async (rxid:string): Promise<StatusMessage> => {
+  loginWithRxid = async (rxid: string): Promise<StatusMessage> => {
     //console.log('[vtecxnext loginWithRxid] start.')
     // 入力チェック
     checkNotNull(rxid, 'Authentication information')
@@ -422,7 +422,7 @@ export class VtecxNext {
     // reCAPTCHA tokenは任意
     const method = 'GET'
     const url = `${SERVLETPATH_DATA}/?_login&_RXID=${rxid}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -431,7 +431,7 @@ export class VtecxNext {
     // vte.cxからのset-cookieを転記
     this.setCookie(response)
     const data = await response.json()
-    return {status:response.status, message:data.feed.title}
+    return { status: response.status, message: data.feed.title }
   }
 
   /**
@@ -441,19 +441,19 @@ export class VtecxNext {
    * @param isTrustedDevice true if trusted device
    * @return status and message
    */
-  loginWithTotp = async (totp:string, isTrustedDevice:boolean): Promise<StatusMessage> => {
+  loginWithTotp = async (totp: string, isTrustedDevice: boolean): Promise<StatusMessage> => {
     //console.log('[vtecxnext loginWithTotp] start.')
     // 入力チェック
     checkNotNull(totp, 'Authentication information')
     // ログイン
     const method = 'GET'
     const url = `${SERVLETPATH_DATA}/?_login`
-    const headers:any = {'Authorization' : `TOTP ${totp}`}
+    const headers: any = { Authorization: `TOTP ${totp}` }
     if (isTrustedDevice) {
       headers['X-TRUSTED-DEVICE'] = 'true'
     }
     //console.log(`[vtecxnext loginWithTotp] headers = ${JSON.stringify(headers)}`)
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, null, headers)
     } catch (e) {
@@ -462,7 +462,7 @@ export class VtecxNext {
     // vte.cxからのset-cookieを転記
     this.setCookie(response)
     const data = await response.json()
-    return {status:response.status, message:data.feed.title}
+    return { status: response.status, message: data.feed.title }
   }
 
   /**
@@ -475,7 +475,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'GET'
     const url = '/d/?_logout'
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -491,7 +491,7 @@ export class VtecxNext {
     const data = await getJson(response)
     //console.log(`[vtecxnext logout] response message : ${data.feed.title}`)
     //return true
-    return {status:response.status, message:data.feed.title}
+    return { status: response.status, message: data.feed.title }
   }
 
   /**
@@ -503,7 +503,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'GET'
     const url = '/d/?_whoami'
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -525,14 +525,14 @@ export class VtecxNext {
    * @param subtitle subtitle
    * @return true if successful
    */
-  log = async (message:string, title?:string, subtitle?:string): Promise<boolean> => {
+  log = async (message: string, title?: string, subtitle?: string): Promise<boolean> => {
     const logTitle = title ?? 'JavaScript'
     const logSubtitle = subtitle ?? 'INFO'
-    const feed = [{'title' : logTitle, 'subtitle' : logSubtitle, 'summary' : message}]
+    const feed = [{ title: logTitle, subtitle: logSubtitle, summary: message }]
 
     const method = 'POST'
     const url = `${SERVLETPATH_PROVIDER}/?_log`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -553,14 +553,14 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return entry
    */
-  getEntry = async (uri:string, targetService?:string): Promise<any> => {
+  getEntry = async (uri: string, targetService?: string): Promise<any> => {
     //console.log('[vtecxnext getEntry] start.')
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}${uri}?e`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, null, null, targetService)
     } catch (e) {
@@ -581,9 +581,9 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return feed (entry array)
    */
-  getFeed = async (uri:string, targetService?:string): Promise<any> => {
+  getFeed = async (uri: string, targetService?: string): Promise<any> => {
     //console.log('[vtecxnext getFeed] start.')
-    const vtecxRes:VtecxResponse = await this.getFeedResponse(uri, targetService)
+    const vtecxRes: VtecxResponse = await this.getFeedResponse(uri, targetService)
     return vtecxRes.data
   }
 
@@ -593,14 +593,14 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return feed (entry array). Returns a cursor in the header if more data is available. (x-vtecx-nextpage)
    */
-  getFeedResponse = async (uri:string, targetService?:string): Promise<VtecxResponse> => {
+  getFeedResponse = async (uri: string, targetService?: string): Promise<VtecxResponse> => {
     //console.log('[vtecxnext getFeedResponse] start.')
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}${uri}${uri.includes('?') ? '&' : '?'}f`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, null, null, targetService)
     } catch (e) {
@@ -612,8 +612,8 @@ export class VtecxNext {
     // レスポンスのエラーチェック
     await checkVtecxResponse(response)
     // 戻り値
-    const data:any = await getJson(response)
-    const header:any = {}
+    const data: any = await getJson(response)
+    const header: any = {}
     const nextpage = response.headers.get(HEADER_NEXTPAGE)
     if (nextpage) {
       header[HEADER_NEXTPAGE] = nextpage
@@ -627,9 +627,9 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return count
    */
-  count = async (uri:string, targetService?:string): Promise<number|null> => {
+  count = async (uri: string, targetService?: string): Promise<number | null> => {
     //console.log('[vtecxnext count] start.')
-    const vtecxRes:VtecxResponse = await this.countResponse(uri, targetService)
+    const vtecxRes: VtecxResponse = await this.countResponse(uri, targetService)
     // 戻り値
     const data = vtecxRes.data
     return vtecxRes.data.feed.title ? Number(data.feed.title) : null
@@ -641,14 +641,14 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return feed. Returns a cursor in the header if more data is available. (x-vtecx-nextpage)
    */
-  countResponse = async (uri:string, targetService?:string): Promise<VtecxResponse> => {
+  countResponse = async (uri: string, targetService?: string): Promise<VtecxResponse> => {
     //console.log('[vtecxnext countResponse] start.')
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}${uri}${uri.includes('?') ? '&' : '?'}c`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, null, null, targetService)
     } catch (e) {
@@ -660,8 +660,8 @@ export class VtecxNext {
     // レスポンスのエラーチェック
     await checkVtecxResponse(response)
     // 戻り値
-    const data:any = await getJson(response)
-    const header:any = {}
+    const data: any = await getJson(response)
+    const header: any = {}
     const nextpage = response.headers.get(HEADER_NEXTPAGE)
     if (nextpage) {
       header[HEADER_NEXTPAGE] = nextpage
@@ -676,7 +676,7 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return registed entries
    */
-  post = async (feed:any, uri?:string, targetService?:string): Promise<any> => {
+  post = async (feed: any, uri?: string, targetService?: string): Promise<any> => {
     //console.log(`[vtecxnext post] start. feed=${feed}`)
     // 入力チェック
     checkNotNull(feed, 'Feed')
@@ -687,7 +687,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'POST'
     const url = `${SERVLETPATH_PROVIDER}${uri ? uri : '/'}?e`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed), null, targetService)
     } catch (e) {
@@ -710,7 +710,13 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return updated entries
    */
-  put = async (feed:any, isbulk?:boolean, parallel?:boolean, async?:boolean, targetService?:string): Promise<any> => {
+  put = async (
+    feed: any,
+    isbulk?: boolean,
+    parallel?: boolean,
+    async?: boolean,
+    targetService?: string
+  ): Promise<any> => {
     //console.log(`[vtecxnext put] start. feed=${feed}`)
     // 入力チェック
     checkNotNull(feed, 'Feed')
@@ -722,7 +728,7 @@ export class VtecxNext {
     }
     const url = `${SERVLETPATH_PROVIDER}/?e${additionalParam}`
     //console.log(`[vtecxnext put] url=${url}`)
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed), null, targetService)
     } catch (e) {
@@ -743,7 +749,11 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return true if successful
    */
-  deleteEntry = async (uri:string, revision?:number, targetService?:string): Promise<boolean> => {
+  deleteEntry = async (
+    uri: string,
+    revision?: number,
+    targetService?: string
+  ): Promise<boolean> => {
     //console.log(`[vtecxnext deleteEntry] start. uri=${uri} revision=${revision}`)
     // キー入力値チェック
     checkUri(uri)
@@ -751,7 +761,7 @@ export class VtecxNext {
     const method = 'DELETE'
     const param = revision ? `&r=${revision}` : ''
     const url = `${SERVLETPATH_PROVIDER}${uri}?e${param}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, null, null, targetService)
     } catch (e) {
@@ -772,14 +782,14 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return true if successful
    */
-  deleteFolder = async (uri:string, async?:boolean, targetService?:string): Promise<boolean> => {
+  deleteFolder = async (uri: string, async?: boolean, targetService?: string): Promise<boolean> => {
     //console.log(`[vtecxnext deleteFolder] start. uri=${uri} async=${async}`)
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'DELETE'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_rf${async ? '&_async' : ''}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, null, null, targetService)
     } catch (e) {
@@ -800,14 +810,14 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return true if successful
    */
-  clearFolder = async (uri:string, async?:boolean, targetService?:string): Promise<boolean> => {
+  clearFolder = async (uri: string, async?: boolean, targetService?: string): Promise<boolean> => {
     //console.log(`[vtecxnext clearFolder] start. uri=${uri} async=${async}`)
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'DELETE'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_clearfolder${async ? '&_async' : ''}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, null, null, targetService)
     } catch (e) {
@@ -828,7 +838,7 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return allocated numbers. comma separated if multiple.
    */
-  allocids = async (uri:string, num:number, targetService?:string): Promise<string> => {
+  allocids = async (uri: string, num: number, targetService?: string): Promise<string> => {
     //console.log('[vtecxnext allocids] start.')
     // キー入力値チェック
     checkUri(uri)
@@ -836,7 +846,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_allocids=${num}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, null, null, targetService)
     } catch (e) {
@@ -859,7 +869,7 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return added number
    */
-  addids = async (uri:string, num:number, targetService?:string): Promise<number|null> => {
+  addids = async (uri: string, num: number, targetService?: string): Promise<number | null> => {
     //console.log('[vtecxnext addids] start.')
     // キー入力値チェック
     checkUri(uri)
@@ -867,7 +877,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_addids=${num}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, null, null, targetService)
     } catch (e) {
@@ -889,14 +899,14 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return added number
    */
-  getids = async (uri:string, targetService?:string): Promise<number|null> => {
+  getids = async (uri: string, targetService?: string): Promise<number | null> => {
     //console.log('[vtecxnext getids] start.')
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_getids`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, null, null, targetService)
     } catch (e) {
@@ -919,7 +929,7 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return set number
    */
-  setids = async (uri:string, num:number, targetService?:string): Promise<number|null> => {
+  setids = async (uri: string, num: number, targetService?: string): Promise<number | null> => {
     //console.log('[vtecxnext setids] start.')
     // キー入力値チェック
     checkUri(uri)
@@ -927,7 +937,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_setids=${num}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, null, null, targetService)
     } catch (e) {
@@ -950,7 +960,7 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return addition range
    */
-  rangeids = async (uri:string, range:string): Promise<string> => {
+  rangeids = async (uri: string, range: string): Promise<string> => {
     //console.log(`[vtecxnext rangeids] start. range=${range}`)
     // 入力値チェック
     checkUri(uri)
@@ -958,8 +968,8 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_rangeids`
-    const feed ={'feed' : {'title' : range}}
-    let response:Response
+    const feed = { feed: { title: range } }
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -981,14 +991,14 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return addition range
    */
-  getRangeids = async (uri:string): Promise<string> => {
+  getRangeids = async (uri: string): Promise<string> => {
     //console.log('[vtecxnext getrangeids] start.')
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_rangeids`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -1010,14 +1020,14 @@ export class VtecxNext {
    * @param feed entries (JSON)
    * @return true if successful
    */
-  setSessionFeed = async (name:string, feed:any): Promise<boolean> => {
+  setSessionFeed = async (name: string, feed: any): Promise<boolean> => {
     // 入力チェック
     checkNotNull(name, 'Name')
     checkNotNull(feed, 'Feed')
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}/?_sessionfeed=${name}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -1037,7 +1047,7 @@ export class VtecxNext {
    * @param entry entry (JSON)
    * @return true if successful
    */
-  setSessionEntry = async (name:string, entry:any): Promise<boolean> => {
+  setSessionEntry = async (name: string, entry: any): Promise<boolean> => {
     //console.log(`[vtecxnext setSessionEntry] start. name=${name} entry=${entry}`)
     // 入力チェック
     checkNotNull(name, 'Name')
@@ -1045,8 +1055,8 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}/?_sessionentry=${name}`
-    const feed ={'feed' : {'entry' : entry}}
-    let response:Response
+    const feed = { feed: { entry: entry } }
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -1066,7 +1076,7 @@ export class VtecxNext {
    * @param str string
    * @return true if successful
    */
-  setSessionString = async (name:string, str:string): Promise<boolean> => {
+  setSessionString = async (name: string, str: string): Promise<boolean> => {
     //console.log(`[vtecxnext setSessionString] start. name=${name} str=${str}`)
     // 入力チェック
     checkNotNull(name, 'Name')
@@ -1074,8 +1084,8 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}/?_sessionstring=${name}`
-    const feed ={'feed' : {'title' : str}}
-    let response:Response
+    const feed = { feed: { title: str } }
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -1095,7 +1105,7 @@ export class VtecxNext {
    * @param num number
    * @return true if successful
    */
-  setSessionLong = async (name:string, num:number): Promise<boolean> => {
+  setSessionLong = async (name: string, num: number): Promise<boolean> => {
     //console.log(`[vtecxnext setSessionLong] start. name=${name} num=${num}`)
     // 入力チェック
     checkNotNull(name, 'Name')
@@ -1103,8 +1113,8 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}/?_sessionlong=${name}`
-    const feed ={'feed' : {'title' : String(num)}}
-    let response:Response
+    const feed = { feed: { title: String(num) } }
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -1124,7 +1134,7 @@ export class VtecxNext {
    * @param num number to add
    * @return true if successful
    */
-  incrementSession = async (name:string, num:number): Promise<number|null> => {
+  incrementSession = async (name: string, num: number): Promise<number | null> => {
     //console.log(`[vtecxnext incrementSession] start. name=${name} num=${num}`)
     // 入力チェック
     checkNotNull(name, 'Name')
@@ -1132,7 +1142,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}/?_sessionincr=${name}&_num=${num}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -1153,14 +1163,14 @@ export class VtecxNext {
    * @param name name
    * @return true if successful
    */
-  deleteSessionFeed = async (name:string): Promise<boolean> => {
+  deleteSessionFeed = async (name: string): Promise<boolean> => {
     //console.log(`[vtecxnext deleteSessionFeed] start. name=${name}`)
     // 入力チェック
     checkNotNull(name, 'Name')
     // vte.cxへリクエスト
     const method = 'DELETE'
     const url = `${SERVLETPATH_PROVIDER}/?_sessionfeed=${name}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -1179,14 +1189,14 @@ export class VtecxNext {
    * @param name name
    * @return true if successful
    */
-  deleteSessionEntry = async (name:string): Promise<boolean> => {
+  deleteSessionEntry = async (name: string): Promise<boolean> => {
     //console.log(`[vtecxnext deleteSessionEntry] start. name=${name}`)
     // 入力チェック
     checkNotNull(name, 'Name')
     // vte.cxへリクエスト
     const method = 'DELETE'
     const url = `${SERVLETPATH_PROVIDER}/?_sessionentry=${name}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -1205,14 +1215,14 @@ export class VtecxNext {
    * @param name name
    * @return true if successful
    */
-  deleteSessionString = async (name:string): Promise<boolean> => {
+  deleteSessionString = async (name: string): Promise<boolean> => {
     //console.log(`[vtecxnext deleteSessionString] start. name=${name}`)
     // 入力チェック
     checkNotNull(name, 'Name')
     // vte.cxへリクエスト
     const method = 'DELETE'
     const url = `${SERVLETPATH_PROVIDER}/?_sessionstring=${name}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -1231,14 +1241,14 @@ export class VtecxNext {
    * @param name name
    * @return true if successful
    */
-  deleteSessionLong = async (name:string): Promise<boolean> => {
+  deleteSessionLong = async (name: string): Promise<boolean> => {
     //console.log(`[vtecxnext deleteSessionLong] start. name=${name}`)
     // 入力チェック
     checkNotNull(name, 'Name')
     // vte.cxへリクエスト
     const method = 'DELETE'
     const url = `${SERVLETPATH_PROVIDER}/?_sessionlong=${name}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -1257,14 +1267,14 @@ export class VtecxNext {
    * @param name name
    * @return feed
    */
-  getSessionFeed = async (name:string): Promise<any> => {
+  getSessionFeed = async (name: string): Promise<any> => {
     //console.log(`[vtecxnext getSessionFeed] start. name=${name}`)
     // 入力チェック
     checkNotNull(name, 'Name')
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}/?_sessionfeed=${name}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -1284,14 +1294,14 @@ export class VtecxNext {
    * @param name name
    * @return entry
    */
-  getSessionEntry = async (name:string): Promise<any> => {
+  getSessionEntry = async (name: string): Promise<any> => {
     //console.log(`[vtecxnext getSessionEntry] start. name=${name}`)
     // 入力チェック
     checkNotNull(name, 'Name')
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}/?_sessionentry=${name}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -1311,14 +1321,14 @@ export class VtecxNext {
    * @param name name
    * @return string
    */
-  getSessionString = async (name:string): Promise<string|null> => {
+  getSessionString = async (name: string): Promise<string | null> => {
     //console.log(`[vtecxnext getSessionString] start. name=${name}`)
     // 入力チェック
     checkNotNull(name, 'Name')
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}/?_sessionstring=${name}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -1343,14 +1353,14 @@ export class VtecxNext {
    * @param name name
    * @return number
    */
-  getSessionLong = async (name:string): Promise<number|null> => {
+  getSessionLong = async (name: string): Promise<number | null> => {
     //console.log(`[vtecxnext getSessionLong] start. name=${name}`)
     // 入力チェック
     checkNotNull(name, 'Name')
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}/?_sessionlong=${name}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -1377,14 +1387,18 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return Maximum number of pages in the specified page range, and total count.
    */
-  pagination = async (uri:string, pagerange:string, targetService?:string): Promise<PaginationInfo> => {
+  pagination = async (
+    uri: string,
+    pagerange: string,
+    targetService?: string
+  ): Promise<PaginationInfo> => {
     //console.log('[vtecxnext pagination] start.')
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}${uri}${uri.includes('?') ? '&' : '?'}_pagination=${pagerange}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, null, null, targetService)
     } catch (e) {
@@ -1401,11 +1415,11 @@ export class VtecxNext {
     if (respJson.feed.link && respJson.feed.link[0]?.___rel === 'next') {
       hasNext = true
     }
-    const pagenationInfo:PaginationInfo = {
-      'lastPageNumber': Number(respJson.feed.title),
-      'countWithinRange': Number(respJson.feed.subtitle),
-      'hasNext': hasNext,
-      'isMemorysort': respJson.feed.rights === MEMORYSORT
+    const pagenationInfo: PaginationInfo = {
+      lastPageNumber: Number(respJson.feed.title),
+      countWithinRange: Number(respJson.feed.subtitle),
+      hasNext: hasNext,
+      isMemorysort: respJson.feed.rights === MEMORYSORT
     }
     return pagenationInfo
   }
@@ -1417,7 +1431,7 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return feed (entry array)
    */
-  getPage = async (uri:string, num:number, targetService?:string): Promise<any> => {
+  getPage = async (uri: string, num: number, targetService?: string): Promise<any> => {
     //console.log(`[vtecxnext getPage] start. uri=${uri} num=${num}`)
     // 入力値チェック
     checkUri(uri)
@@ -1425,7 +1439,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}${uri}${uri.includes('?') ? '&' : '?'}n=${num}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, null, null, targetService)
     } catch (e) {
@@ -1448,13 +1462,21 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return feed (entry array)
    */
-  getPageWithPagination = async (uri:string, num:number, targetService?:string): Promise<any> => {
+  getPageWithPagination = async (
+    uri: string,
+    num: number,
+    targetService?: string
+  ): Promise<any> => {
     //console.log(`[getPageWithPagination] start. uri=${uri} num=${num} ${targetService ? 'targetService=' + targetService : ''}`)
 
     // ページ数が1の場合、カーソルリスト作成処理を行う
     if (num === 1) {
       //console.log(`[getPageWithPagination] pagination start. uri=${uri}`)
-      const paginationInfo = await this.pagination(uri, `1,${String(PAGINATION_NUM)}`, targetService)
+      const paginationInfo = await this.pagination(
+        uri,
+        `1,${String(PAGINATION_NUM)}`,
+        targetService
+      )
       // メモリソートの場合は全てのカーソルリストを作成する
       if (paginationInfo.hasNext && !paginationInfo.isMemorysort) {
         // 次のカーソルリスト作成 (非同期のまま)
@@ -1484,15 +1506,19 @@ export class VtecxNext {
   /**
    * ページングのカーソルリスト作成処理
    * 続きがある場合、次のカーソルリスト作成処理を実行する
-   * @param vtecxnext 
+   * @param vtecxnext
    * @param uri キーとパラメータ
    * @param prevLastPage 前回の最終ページ
    * @param targetService 対象サービス
    */
-  private nextPagination = async (uri:string, prevLastPage:number, targetService?:string) => {
+  private nextPagination = async (uri: string, prevLastPage: number, targetService?: string) => {
     const firstPage = prevLastPage + 1
     const lastPage = prevLastPage + prevLastPage
-    const paginationInfo = await this.pagination(uri, `${String(firstPage)},${String(lastPage)}`, targetService)
+    const paginationInfo = await this.pagination(
+      uri,
+      `${String(firstPage)},${String(lastPage)}`,
+      targetService
+    )
     if (paginationInfo.hasNext) {
       await this.nextPagination(uri, lastPage, targetService)
     }
@@ -1505,12 +1531,12 @@ export class VtecxNext {
    * @param tablenames key:entity's prop name, value:BigQuery table name
    * @return true if successful
    */
-  postBQ = async (feed:any, async?:boolean, tablenames?:any): Promise<boolean> => {
+  postBQ = async (feed: any, async?: boolean, tablenames?: any): Promise<boolean> => {
     //console.log(`[vtecxnext postBQ] start. async=${async} feed=${feed}`)
     // 入力チェック
     checkNotNull(feed, 'Feed')
     // リクエストデータ
-    const reqFeed = 'feed' in feed ? feed : {'feed' : {'entry' : feed}}
+    const reqFeed = 'feed' in feed ? feed : { feed: { entry: feed } }
     // テーブル名の指定がある場合は指定
     const tablenamesStr = editBqTableNames(tablenames)
     if (tablenamesStr) {
@@ -1519,7 +1545,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'POST'
     const url = `${SERVLETPATH_PROVIDER}/?_bq${async ? '&_async' : ''}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(reqFeed))
     } catch (e) {
@@ -1540,7 +1566,7 @@ export class VtecxNext {
    * @param tablenames key:entity's prop name, value:BigQuery table name
    * @return true if successful
    */
-  deleteBQ = async (keys:string[], async?:boolean, tablenames?:any): Promise<boolean> => {
+  deleteBQ = async (keys: string[], async?: boolean, tablenames?: any): Promise<boolean> => {
     //console.log(`[vtecxnext deleteBQ] start. async=${async} keys=${keys}`)
     // 入力チェック
     checkNotNull(keys, 'Key')
@@ -1551,10 +1577,10 @@ export class VtecxNext {
     let idx = 0
     for (const key of keys) {
       //console.log(`[vtecxnext deleteBQ] key=${key}`)
-      links[idx] = {'___href' : key}
+      links[idx] = { ___href: key }
       idx++
     }
-    const feed:any = {'feed': {}}
+    const feed: any = { feed: {} }
     if (tablenamesStr) {
       feed.feed['title'] = tablenamesStr
     }
@@ -1563,7 +1589,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'DELETE'
     const url = `${SERVLETPATH_PROVIDER}/?_bq${async ? '&_async' : ''}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -1584,7 +1610,7 @@ export class VtecxNext {
    * @param parent parent name of result json
    * @return query results in JSON format
    */
-  getBQ = async (sql:string, values?:any[], parent?:string): Promise<any> => {
+  getBQ = async (sql: string, values?: any[], parent?: string): Promise<any> => {
     return this.execBQ(sql, values)
   }
 
@@ -1595,7 +1621,7 @@ export class VtecxNext {
    * @param parent parent name of result json
    * @return query results in JSON format
    */
-  execBQ = async (sql:string, values?:any[], parent?:string): Promise<any> => {
+  execBQ = async (sql: string, values?: any[], parent?: string): Promise<any> => {
     //console.log(`[vtecxnext execBQ] start. sql=${sql} values=${values}`)
     // 入力チェック
     checkNotNull(sql, 'Query SQL')
@@ -1604,7 +1630,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}/?_querybq`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -1629,7 +1655,12 @@ export class VtecxNext {
    * @param parent parent name of result json
    * @return true
    */
-  getBQCsv = async (sql:string, values?:any[], filename?:string, parent?:string): Promise<boolean> => {
+  getBQCsv = async (
+    sql: string,
+    values?: any[],
+    filename?: string,
+    parent?: string
+  ): Promise<boolean> => {
     //console.log(`[vtecxnext getBQCsv] start. sql=${sql} values=${values}`)
     // 入力チェック
     checkNotNull(sql, 'Query SQL')
@@ -1638,7 +1669,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}/?_querybq&_csv${filename ? '=' + filename : ''}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -1670,7 +1701,7 @@ export class VtecxNext {
    * @param tablenames key:entity's prop name, value:BigQuery table name
    * @return registed entries
    */
-  postBDBQ = async (feed:any, uri?:string, tablenames?:any): Promise<any> => {
+  postBDBQ = async (feed: any, uri?: string, tablenames?: any): Promise<any> => {
     //console.log(`[vtecxnext postBQ] start. async=${async} feed=${feed}`)
     // 入力チェック
     checkNotNull(feed, 'Feed')
@@ -1680,7 +1711,7 @@ export class VtecxNext {
     }
 
     // リクエストデータ
-    const reqFeed = 'feed' in feed ? feed : {'feed' : {'entry' : feed}}
+    const reqFeed = 'feed' in feed ? feed : { feed: { entry: feed } }
     // テーブル名の指定がある場合は指定
     const tablenamesStr = editBqTableNames(tablenames)
     if (tablenamesStr) {
@@ -1689,7 +1720,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'POST'
     const url = `${SERVLETPATH_PROVIDER}${uri ? uri : '/'}?_bdbq`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(reqFeed))
     } catch (e) {
@@ -1710,7 +1741,7 @@ export class VtecxNext {
    * @param tablenames key:entity's prop name, value:BigQuery table name
    * @return true if successful
    */
-  putBDBQ = async (feed:any, uri?:string, tablenames?:any): Promise<any> => {
+  putBDBQ = async (feed: any, uri?: string, tablenames?: any): Promise<any> => {
     //console.log(`[vtecxnext putBDBQ] start. feed=${feed}`)
     // 入力チェック
     checkNotNull(feed, 'Feed')
@@ -1720,7 +1751,7 @@ export class VtecxNext {
     }
 
     // リクエストデータ
-    const reqFeed = 'feed' in feed ? feed : {'feed' : {'entry' : feed}}
+    const reqFeed = 'feed' in feed ? feed : { feed: { entry: feed } }
     // テーブル名の指定がある場合は指定
     const tablenamesStr = editBqTableNames(tablenames)
     //console.log(`[putBDBQ] tableamesStr=${tablenamesStr}`)
@@ -1730,7 +1761,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${uri ? uri : '/'}?_bdbq`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(reqFeed))
     } catch (e) {
@@ -1750,7 +1781,7 @@ export class VtecxNext {
    * @param tablenames key:entity's prop name, value:BigQuery table name
    * @return true if successful
    */
-  deleteBDBQ = async (keys:string[], tablenames?:any): Promise<boolean> => {
+  deleteBDBQ = async (keys: string[], tablenames?: any): Promise<boolean> => {
     //console.log(`[vtecxnext deleteBDBQ] start. keys=${keys}`)
     // 入力チェック
     checkNotNull(keys, 'Key')
@@ -1761,10 +1792,10 @@ export class VtecxNext {
     let idx = 0
     for (const key of keys) {
       //console.log(`[vtecxnext deleteBDBQ] key=${key}`)
-      links[idx] = {'___href' : key}
+      links[idx] = { ___href: key }
       idx++
     }
-    const feed:any = {'feed': {}}
+    const feed: any = { feed: {} }
     if (tablenamesStr) {
       feed.feed['title'] = tablenamesStr
     }
@@ -1773,7 +1804,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'DELETE'
     const url = `${SERVLETPATH_PROVIDER}/?_bdbq`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -1794,7 +1825,7 @@ export class VtecxNext {
    * @param parent parent name of result json
    * @return query results in JSON format
    */
-  queryRDB = async (sql:string, values?:any[], parent?:string): Promise<any> => {
+  queryRDB = async (sql: string, values?: any[], parent?: string): Promise<any> => {
     //console.log(`[vtecxnext queryRDB] start. sql=${sql} values=${values}`)
     // 入力チェック
     checkNotNull(sql, 'Query SQL')
@@ -1803,7 +1834,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}/?_queryrdb`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -1828,7 +1859,12 @@ export class VtecxNext {
    * @param parent parent name of result json
    * @return true
    */
-  queryRDBCsv = async (sql:string, values?:any[], filename?:string, parent?:string): Promise<boolean> => {
+  queryRDBCsv = async (
+    sql: string,
+    values?: any[],
+    filename?: string,
+    parent?: string
+  ): Promise<boolean> => {
     //console.log(`[vtecxnext queryRDBCsv] start. sql=${sql} values=${values}`)
     // 入力チェック
     checkNotNull(sql, 'Query SQL')
@@ -1837,7 +1873,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}/?_queryrdb&_csv${filename ? '=' + filename : ''}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -1870,7 +1906,12 @@ export class VtecxNext {
    * @param async execute async
    * @param isbulk execute with autocommit
    */
-  execRDB = async (sqls:string[], values?:any[][], async?:boolean, isbulk?:boolean): Promise<any> => {
+  execRDB = async (
+    sqls: string[],
+    values?: any[][],
+    async?: boolean,
+    isbulk?: boolean
+  ): Promise<any> => {
     //console.log(`[vtecxnext execRDB] start. sql=${sql} values=${values}`)
     // 入力チェック
     checkNotNull(sqls, 'exec SQL')
@@ -1879,7 +1920,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}/?_execrdb${async ? '&_async' : ''}${isbulk ? '&_bulk' : ''}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -1903,14 +1944,14 @@ export class VtecxNext {
    * @param filename PDF file name
    * @return true
    */
-  toPdf = async (htmlTemplate:string, filename?:string): Promise<boolean> => {
+  toPdf = async (htmlTemplate: string, filename?: string): Promise<boolean> => {
     //console.log(`[vtecxnext toPdf] start. htmlTemplate=${htmlTemplate} filename=${filename}`)
     // 入力チェック
     checkNotNull(htmlTemplate, 'PDF template')
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}/?_pdf${filename ? '=' + filename : ''}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, htmlTemplate)
     } catch (e) {
@@ -1937,14 +1978,14 @@ export class VtecxNext {
    * @param revision revision
    * @return signed entry
    */
-  putSignature = async (uri:string, revision?:number): Promise<any> => {
+  putSignature = async (uri: string, revision?: number): Promise<any> => {
     //console.log('[vtecxnext putSignature] start.')
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_signature${revision ? '&r=' + revision : ''}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -1964,14 +2005,14 @@ export class VtecxNext {
    * @param feed entries
    * @return signed entries
    */
-  putSignatures = async (feed:any): Promise<any> => {
+  putSignatures = async (feed: any): Promise<any> => {
     //console.log('[vtecxnext putSignatures] start.')
     // 入力チェック
     checkNotNull(feed, 'Feed')
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}/?_signature`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -1992,14 +2033,14 @@ export class VtecxNext {
    * @param revision revision
    * @return true if successful
    */
-  deleteSignature = async (uri:string, revision?:number): Promise<boolean> => {
+  deleteSignature = async (uri: string, revision?: number): Promise<boolean> => {
     //console.log('[vtecxnext deleteSignature] start.')
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'DELETE'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_signature${revision ? '&r=' + revision : ''}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -2018,14 +2059,14 @@ export class VtecxNext {
    * @param uri key
    * @return true if the signature is valid
    */
-  checkSignature = async (uri:string): Promise<boolean> => {
+  checkSignature = async (uri: string): Promise<boolean> => {
     //console.log('[vtecxnext checkSignature] start.')
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_signature`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -2048,12 +2089,18 @@ export class VtecxNext {
    * @param attachments keys of attachment files
    * @return true if successful
    */
-  sendMail = async (entry:any, to:string[], cc?:string[], bcc?:string[], attachments?:string[]): Promise<boolean> => {
+  sendMail = async (
+    entry: any,
+    to: string[],
+    cc?: string[],
+    bcc?: string[],
+    attachments?: string[]
+  ): Promise<boolean> => {
     //console.log(`[vtecxnext sendMail] start. to=${to}`)
     // 入力チェック
     checkNotNull(entry, 'Entry')
     // 引数編集
-    let links:any[] = []
+    let links: any[] = []
     const linksTo = getLinks('to', to)
     //console.log(`[vtecxnext sendMail] linksTo=${JSON.stringify(linksTo)}`)
     if (linksTo) {
@@ -2078,12 +2125,12 @@ export class VtecxNext {
       }
     }
     //console.log(`[vtecxnext sendMail] links = ${JSON.stringify(links)}`)
-    let feed = {'feed' : {'entry' : [entry], 'link' : links}}
+    let feed = { feed: { entry: [entry], link: links } }
     //console.log(`[vtecxnext sendMail] feed = ${JSON.stringify(feed)}`)
     // vte.cxへリクエスト
     const method = 'POST'
     const url = `${SERVLETPATH_PROVIDER}/?_sendmail`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -2107,30 +2154,37 @@ export class VtecxNext {
    * @param data key value data (Expo)
    * @return true if successful
    */
-  pushNotification = async (message:string, to:string[], title?:string, subtitle?:string, imageUrl?:string, data?:any): Promise<boolean> => {
+  pushNotification = async (
+    message: string,
+    to: string[],
+    title?: string,
+    subtitle?: string,
+    imageUrl?: string,
+    data?: any
+  ): Promise<boolean> => {
     //console.log(`[vtecxnext pushNotification] start. to=${to}`)
     // 入力チェック
     checkNotNull(message, 'Message')
     checkNotNull(to, 'Destination')
     // 引数編集
-    const links:any[] = []
+    const links: any[] = []
     for (const destination of to) {
-      const link = {'___rel' : 'to', '___href' : destination}
+      const link = { ___rel: 'to', ___href: destination }
       links.push(link)
     }
-    const categories:any[] = []
+    const categories: any[] = []
     if (imageUrl) {
-      const category = {'___scheme' : 'imageurl', '___label' : imageUrl}
+      const category = { ___scheme: 'imageurl', ___label: imageUrl }
       categories.push(category)
     }
     if (data) {
       for (const name in data) {
-        const category = {'___scheme' : name, '___label' : data[name]}
+        const category = { ___scheme: name, ___label: data[name] }
         categories.push(category)
       }
     }
-    const content = {'______text' : message}
-    const entry:any = {}
+    const content = { ______text: message }
+    const entry: any = {}
     if (title) {
       entry['title'] = title
     }
@@ -2141,15 +2195,17 @@ export class VtecxNext {
     if (categories) {
       entry['category'] = categories
     }
-    const feed = {'feed' : {
-      'entry' : [entry],
-      'link' : links}
+    const feed = {
+      feed: {
+        entry: [entry],
+        link: links
+      }
     }
     //console.log(`[vtecxnext pushNotification] feed = ${JSON.stringify(feed)}`)
     // vte.cxへリクエスト
     const method = 'POST'
     const url = `${SERVLETPATH_PROVIDER}/?_pushnotification`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -2168,14 +2224,14 @@ export class VtecxNext {
    * @param flag true if on, false if off
    * @param channel channel
    */
-  setMessageQueueStatus = async (flag:boolean, channel:string): Promise<boolean> => {
+  setMessageQueueStatus = async (flag: boolean, channel: string): Promise<boolean> => {
     //console.log(`[vtecxnext setMessageQueueStatus] start. channel=${channel} flag=${flag}`)
     // キー入力値チェック
     checkUri(channel)
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${channel}?_mqstatus=${flag ? 'true' : 'false'}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -2194,14 +2250,14 @@ export class VtecxNext {
    * @param name name
    * @return feed
    */
-  getMessageQueueStatus = async (channel:string): Promise<any> => {
+  getMessageQueueStatus = async (channel: string): Promise<any> => {
     //console.log(`[vtecxnext getMessageQueueStatus] start. channel=${channel}`)
     // 入力チェック
     checkUri(channel)
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}${channel}?_mqstatus`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -2222,7 +2278,7 @@ export class VtecxNext {
    * @param channel channel
    * @return true if successful
    */
-  setMessageQueue = async (feed:any, channel:string): Promise<boolean> => {
+  setMessageQueue = async (feed: any, channel: string): Promise<boolean> => {
     //console.log(`[vtecxnext setMessageQueue] start. channel=${channel} feed=${feed}`)
     // 入力チェック
     checkUri(channel)
@@ -2230,7 +2286,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'POST'
     const url = `${SERVLETPATH_PROVIDER}${channel}?_mq`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -2249,14 +2305,14 @@ export class VtecxNext {
    * @param name name
    * @return feed
    */
-  getMessageQueue = async (channel:string): Promise<any> => {
+  getMessageQueue = async (channel: string): Promise<any> => {
     //console.log(`[vtecxnext getMessageQueue] start. channel=${channel}`)
     // 入力チェック
     checkUri(channel)
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}${channel}?_mq`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -2278,7 +2334,7 @@ export class VtecxNext {
    * @param selfid hierarchical name under my group alias
    * @return feed
    */
-  addGroup = async (group:string, selfid?:string): Promise<any> => {
+  addGroup = async (group: string, selfid?: string): Promise<any> => {
     //console.log(`[vtecxnext addGroup] start. group=${group} selfid=${selfid} uids=${uids}`)
     // 入力チェック
     checkUri(group, 'group key')
@@ -2287,7 +2343,7 @@ export class VtecxNext {
     const method = 'POST'
     const url = `${SERVLETPATH_PROVIDER}${group}?_addgroup${selfid ? '&_selfid=' + selfid : ''}`
 
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -2310,7 +2366,7 @@ export class VtecxNext {
    * @param selfid hierarchical name under my group alias
    * @return feed
    */
-  addGroupByAdmin = async (uids:string[], group:string, selfid?:string): Promise<any> => {
+  addGroupByAdmin = async (uids: string[], group: string, selfid?: string): Promise<any> => {
     //console.log(`[vtecxnext addGroupByAdmin] start. group=${group} selfid=${selfid} uids=${uids}`)
     // 入力チェック
     checkUri(group, 'group key')
@@ -2321,12 +2377,12 @@ export class VtecxNext {
     const url = `${SERVLETPATH_PROVIDER}${group}?_addgroupByAdmin${selfid ? '&_selfid=' + selfid : ''}`
     const feed = []
     for (const uid of uids) {
-      const entry = {'link' : [{'___rel' : 'self', '___href' : `/_user/${uid}`}]}
+      const entry = { link: [{ ___rel: 'self', ___href: `/_user/${uid}` }] }
       feed.push(entry)
     }
     const value = JSON.stringify(feed)
 
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, value)
     } catch (e) {
@@ -2347,7 +2403,7 @@ export class VtecxNext {
    * @param selfid hierarchical name under my group alias
    * @return feed
    */
-  joinGroup = async (group:string, selfid?:string): Promise<any> => {
+  joinGroup = async (group: string, selfid?: string): Promise<any> => {
     //console.log(`[vtecxnext joinGroup] start. group=${group} selfid=${selfid}`)
     // 入力チェック
     checkUri(group)
@@ -2355,7 +2411,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${group}?_joingroup${selfid ? '&_selfid=' + selfid : ''}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -2375,14 +2431,14 @@ export class VtecxNext {
    * @param group group
    * @return feed
    */
-  leaveGroup = async (group:string): Promise<boolean> => {
+  leaveGroup = async (group: string): Promise<boolean> => {
     //console.log(`[vtecxnext leaveGroup] start. group=${group}`)
     // 入力チェック
     checkUri(group)
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${group}?_leavegroup`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -2403,7 +2459,7 @@ export class VtecxNext {
    * @param group group
    * @return feed
    */
-  leaveGroupByAdmin = async (uids:string[], group:string): Promise<any> => {
+  leaveGroupByAdmin = async (uids: string[], group: string): Promise<any> => {
     //console.log(`[vtecxnext leaveGroupByAdmin] start. group=${group} uids=${uids}`)
     // 入力チェック
     checkUri(group, 'group key')
@@ -2413,12 +2469,12 @@ export class VtecxNext {
     const url = `${SERVLETPATH_PROVIDER}${group}?_leavegroupByAdmin`
     const feed = []
     for (const uid of uids) {
-      const entry = {'link' : [{'___rel' : 'self', '___href' : `/_user/${uid}`}]}
+      const entry = { link: [{ ___rel: 'self', ___href: `/_user/${uid}` }] }
       feed.push(entry)
     }
     const value = JSON.stringify(feed)
 
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, value)
     } catch (e) {
@@ -2439,14 +2495,14 @@ export class VtecxNext {
    * @param uri group key
    * @return feed (entry array)
    */
-  noGroupMember = async (uri:string): Promise<any> => {
+  noGroupMember = async (uri: string): Promise<any> => {
     //console.log('[vtecxnext noGroupMember] start.')
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_DATA}${uri}?_no_group_member`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -2466,12 +2522,12 @@ export class VtecxNext {
    * @param uri group key
    * @return group array
    */
-  getGroups = async (): Promise<string[]|null> => {
+  getGroups = async (): Promise<string[] | null> => {
     //console.log('[vtecxnext getGroups] start.')
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_DATA}/?_group`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -2486,7 +2542,7 @@ export class VtecxNext {
     const feed = await getJson(response)
     //console.log(`[vtecxnext getGroups] feed=${JSON.stringify(feed)}`)
     if (feed && Array.isArray(feed) && feed.length > 0) {
-      const groups:string[] = []
+      const groups: string[] = []
       for (const entry of feed) {
         if (entry.link && entry.link.length > 0) {
           groups.push(entry.link[0].___href)
@@ -2500,16 +2556,16 @@ export class VtecxNext {
   /**
    * whether you are in the group
    * @param uri group key
-   * @return true/false 
+   * @return true/false
    */
-  isGroupMember = async (uri:string): Promise<boolean> => {
+  isGroupMember = async (uri: string): Promise<boolean> => {
     //console.log('[vtecxnext noGroupMember] start.')
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_DATA}${uri}?_is_group_member`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -2527,7 +2583,7 @@ export class VtecxNext {
 
   /**
    * whether you are in the admin group
-   * @return true/false 
+   * @return true/false
    */
   isAdmin = async (): Promise<boolean> => {
     return await this.isGroupMember('/_group/$admin')
@@ -2539,7 +2595,7 @@ export class VtecxNext {
    * @param reCaptchaToken reCAPTCHA token
    * @return message feed
    */
-  adduser = async (adduserInfo:AdduserInfo, reCaptchaToken:string): Promise<any> => {
+  adduser = async (adduserInfo: AdduserInfo, reCaptchaToken: string): Promise<any> => {
     //console.log(`[vtecxnext adduser] start. feed=${feed}`)
     // 入力チェック
     checkNotNull(adduserInfo, 'username')
@@ -2551,7 +2607,7 @@ export class VtecxNext {
     const method = 'POST'
     const param = reCaptchaToken ? `&g-recaptcha-token=${reCaptchaToken}` : ''
     const url = `${SERVLETPATH_DATA}/?_adduser${param}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -2571,15 +2627,17 @@ export class VtecxNext {
    * @param isNoPswd パスワードを付加しない場合true(passresetの場合true)
    * @returns entry
    */
-  private convertAdduserInfoToEntry = (adduserInfo:AdduserInfo, isNoPswd?:boolean):any => {
+  private convertAdduserInfoToEntry = (adduserInfo: AdduserInfo, isNoPswd?: boolean): any => {
     return {
-      'contributor' : [{
-        'uri' : `urn:vte.cx:auth:${this.null2blank(adduserInfo.username)}${isNoPswd ? '' : ',' + this.null2blank(adduserInfo.pswd)}`,
-        'name' : adduserInfo.nickname,
-      }],
-      'title' : adduserInfo.emailSubject,
-      'summary' : adduserInfo.emailText,
-      'content' : {'______text' : adduserInfo.emailHtml}
+      contributor: [
+        {
+          uri: `urn:vte.cx:auth:${this.null2blank(adduserInfo.username)}${isNoPswd ? '' : ',' + this.null2blank(adduserInfo.pswd)}`,
+          name: adduserInfo.nickname
+        }
+      ],
+      title: adduserInfo.emailSubject,
+      summary: adduserInfo.emailText,
+      content: { ______text: adduserInfo.emailHtml }
     }
   }
 
@@ -2589,11 +2647,11 @@ export class VtecxNext {
    * @return message feed
    */
   //adduserByAdmin = async (feed:any): Promise<any> => {
-  adduserByAdmin = async (adduserInfos:AdduserInfo[]): Promise<any> => {
+  adduserByAdmin = async (adduserInfos: AdduserInfo[]): Promise<any> => {
     //console.log(`[vtecxnext adduserByAdmin] start. feed=${feed}`)
     // 入力チェック
     checkNotNull(adduserInfos, 'username')
-    const feed:any = []
+    const feed: any = []
     for (const adduserInfo of adduserInfos) {
       const entry = this.convertAdduserInfoToEntry(adduserInfo)
       feed.push(entry)
@@ -2601,7 +2659,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'POST'
     const url = `${SERVLETPATH_DATA}/?_adduserByAdmin`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -2621,12 +2679,12 @@ export class VtecxNext {
    * @param groupname group name
    * @return message feed
    */
-  adduserByGroupadmin = async (adduserInfos:AdduserInfo[], groupname:string): Promise<any> => {
+  adduserByGroupadmin = async (adduserInfos: AdduserInfo[], groupname: string): Promise<any> => {
     //console.log(`[vtecxnext adduserByGroupadmin] start. feed=${feed}`)
     // 入力チェック
     checkNotNull(adduserInfos, 'username')
     checkNotNull(groupname, 'group name')
-    const feed:any = []
+    const feed: any = []
     for (const adduserInfo of adduserInfos) {
       const entry = this.convertAdduserInfoToEntry(adduserInfo)
       feed.push(entry)
@@ -2634,7 +2692,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'POST'
     const url = `${SERVLETPATH_DATA}/?_adduserByGroupadmin=${groupname}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -2654,7 +2712,7 @@ export class VtecxNext {
    * @param reCaptchaToken reCAPTCHA token
    * @return message feed
    */
-  passreset = async (adduserInfo:AdduserInfo, reCaptchaToken?:string): Promise<any> => {
+  passreset = async (adduserInfo: AdduserInfo, reCaptchaToken?: string): Promise<any> => {
     //console.log(`[vtecxnext passreset] start. feed=${feed}`)
     // 入力チェック
     checkNotNull(adduserInfo, 'email address')
@@ -2664,7 +2722,7 @@ export class VtecxNext {
     const method = 'POST'
     const param = reCaptchaToken ? `&g-recaptcha-token=${reCaptchaToken}` : ''
     const url = `${SERVLETPATH_DATA}/?_passreset${param}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -2685,26 +2743,26 @@ export class VtecxNext {
    * @param passresetToken password reset token
    * @return message feed
    */
-  changepass = async (newpswd:string, oldpswd?:string, passresetToken?:string): Promise<any> => {
+  changepass = async (newpswd: string, oldpswd?: string, passresetToken?: string): Promise<any> => {
     //console.log(`[vtecxnext changepass] start. feed=${feed}`)
     // 入力チェック
     checkNotNull(newpswd, 'new password')
     const contributors = []
-    const newPswdContributor = {'uri' : `urn:vte.cx:auth:,${newpswd}`}
+    const newPswdContributor = { uri: `urn:vte.cx:auth:,${newpswd}` }
     contributors.push(newPswdContributor)
     if (oldpswd) {
-      const oldPswdContributor = {'uri' : `urn:vte.cx:oldphash:${oldpswd}`}
+      const oldPswdContributor = { uri: `urn:vte.cx:oldphash:${oldpswd}` }
       contributors.push(oldPswdContributor)
     }
     if (passresetToken) {
-      const passresetTokenContributor = {'uri' : `urn:vte.cx:passreset_token:${passresetToken}`}
+      const passresetTokenContributor = { uri: `urn:vte.cx:passreset_token:${passresetToken}` }
       contributors.push(passresetTokenContributor)
     }
-    const feed = [{'contributor' : contributors}]
+    const feed = [{ contributor: contributors }]
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_changephash`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -2723,30 +2781,26 @@ export class VtecxNext {
    * @param changepassByAdminInfos password change information (uid, password)
    * @return message feed
    */
-  changepassByAdmin = async (changepassByAdminInfos:ChangepassByAdminInfo[]): Promise<any> => {
+  changepassByAdmin = async (changepassByAdminInfos: ChangepassByAdminInfo[]): Promise<any> => {
     //console.log(`[vtecxnext changepassByAdmin] start. feed=${feed}`)
     // 入力チェック
     checkNotNull(changepassByAdminInfos, 'password change information')
-    const feed:any = []
+    const feed: any = []
     for (const changepassByAdminInfo of changepassByAdminInfos) {
       // 入力チェック
       checkNotNull(changepassByAdminInfo.uid, 'password change information')
       checkNotNull(changepassByAdminInfo.pswd, 'password change information')
 
       const entry = {
-        'contributor' : [
-          {'uri': `urn:vte.cx:auth:,${changepassByAdminInfo.pswd}`}
-        ],
-        'link' : [
-          {'___rel' : 'self', '___href' : `/_user/${changepassByAdminInfo.uid}/auth`}
-        ]
+        contributor: [{ uri: `urn:vte.cx:auth:,${changepassByAdminInfo.pswd}` }],
+        link: [{ ___rel: 'self', ___href: `/_user/${changepassByAdminInfo.uid}/auth` }]
       }
       feed.push(entry)
     }
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_changephashByAdmin`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -2765,7 +2819,7 @@ export class VtecxNext {
    * @param adduserInfo change user info
    * @return message feed
    */
-  changeaccount = async (adduserInfo:AdduserInfo): Promise<any> => {
+  changeaccount = async (adduserInfo: AdduserInfo): Promise<any> => {
     //console.log(`[vtecxnext changeaccount] start. feed=${feed}`)
     // 入力チェック
     checkNotNull(adduserInfo, 'user info')
@@ -2774,7 +2828,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_changeaccount`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -2793,14 +2847,14 @@ export class VtecxNext {
    * @param verifyCode verify code
    * @return message feed
    */
-  changeaccount_verify = async (verifyCode:string): Promise<any> => {
+  changeaccount_verify = async (verifyCode: string): Promise<any> => {
     //console.log(`[vtecxnext changeaccount_verify] start. verifyCode=${verifyCode}`)
     // 入力値チェック
     checkNotNull(verifyCode, 'verify code')
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_changeaccount_verify=${verifyCode}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -2820,12 +2874,12 @@ export class VtecxNext {
    * @param account account
    * @return user status
    */
-  userstatus = async (account?:string): Promise<string|any> => {
+  userstatus = async (account?: string): Promise<string | any> => {
     //console.log('[vtecxnext userstatus] start.')
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_DATA}/?_userstatus${account ? '=' + account : ''}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -2847,16 +2901,17 @@ export class VtecxNext {
   /**
    * revoke user
    * @param account account
+   * @param isDeleteGroups true if delete groups
    * @return message feed
    */
-  revokeuser = async (account:string): Promise<any> => {
+  revokeuser = async (account: string, isDeleteGroups?: boolean): Promise<any> => {
     //console.log('[vtecxnext revokeuser] start.')
     // 入力値チェック
     checkNotNull(account, 'account')
     // vte.cxへリクエスト
     const method = 'PUT'
-    const url = `${SERVLETPATH_DATA}/?_revokeuser=${account}`
-    let response:Response
+    const url = `${SERVLETPATH_DATA}/?_revokeuser=${account}${isDeleteGroups ? '&_deletegroup=true' : ''}`
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -2875,31 +2930,36 @@ export class VtecxNext {
    * revoke users
    * @param accounts account list
    * @param uids uid list
+   * @param isDeleteGroups true if delete groups
    * @return message feed
    */
-  revokeusers = async (accounts?:string[], uids?:string[]): Promise<any> => {
+  revokeusers = async (
+    accounts?: string[],
+    uids?: string[],
+    isDeleteGroups?: boolean
+  ): Promise<any> => {
     //console.log(`[vtecxnext revokeusers] start. feed=${feed}`)
     // 入力チェック
     if (isBlank(accounts) && isBlank(uids)) {
       throw new VtecxNextError(400, `account or uid is required.`)
     }
-    const feed:any = []
+    const feed: any = []
     if (accounts) {
       for (const account of accounts) {
-        const entry = {'title' : account}
+        const entry = { title: account }
         feed.push(entry)
       }
     }
     if (uids) {
       for (const uid of uids) {
-        const entry = {'link' : [{'___rel' : 'self', '___href' : `/_user/${uid}`}]}
+        const entry = { link: [{ ___rel: 'self', ___href: `/_user/${uid}` }] }
         feed.push(entry)
       }
     }
     // vte.cxへリクエスト
     const method = 'PUT'
-    const url = `${SERVLETPATH_DATA}/?_revokeuser`
-    let response:Response
+    const url = `${SERVLETPATH_DATA}/?_revokeuser${isDeleteGroups ? '&_deletegroup=true' : ''}`
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -2918,14 +2978,14 @@ export class VtecxNext {
    * @param account account
    * @return message feed
    */
-  activateuser = async (account:string): Promise<any> => {
+  activateuser = async (account: string): Promise<any> => {
     //console.log('[vtecxnext activateuser] start.')
     // 入力値チェック
     checkNotNull(account, 'account')
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_activateuser=${account}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -2946,29 +3006,29 @@ export class VtecxNext {
    * @param uids uid list
    * @return message feed
    */
-  activateusers = async (accounts?:string[], uids?:string[]): Promise<any> => {
+  activateusers = async (accounts?: string[], uids?: string[]): Promise<any> => {
     //console.log(`[vtecxnext activateusers] start. feed=${feed}`)
     // 入力チェック
     if (isBlank(accounts) && isBlank(uids)) {
       throw new VtecxNextError(400, `account or uid is required.`)
     }
-    const feed:any = []
+    const feed: any = []
     if (accounts) {
       for (const account of accounts) {
-        const entry = {'title' : account}
+        const entry = { title: account }
         feed.push(entry)
       }
     }
     if (uids) {
       for (const uid of uids) {
-        const entry = {'link' : [{'___rel' : 'self', '___href' : `/_user/${uid}`}]}
+        const entry = { link: [{ ___rel: 'self', ___href: `/_user/${uid}` }] }
         feed.push(entry)
       }
     }
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_activateuser`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -2984,15 +3044,15 @@ export class VtecxNext {
 
   /**
    * cancel user.
-   * @param account account
+   * @param isDeleteGroups true if delete groups
    * @return message feed
    */
-  canceluser = async (): Promise<any> => {
+  canceluser = async (isDeleteGroups?: boolean): Promise<any> => {
     //console.log('[vtecxnext canceluser] start.')
     // vte.cxへリクエスト
     const method = 'DELETE'
-    const url = `${SERVLETPATH_DATA}/?_canceluser`
-    let response:Response
+    const url = `${SERVLETPATH_DATA}/?_canceluser${isDeleteGroups ? '&_deletegroup=true' : ''}`
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -3012,14 +3072,14 @@ export class VtecxNext {
    * @param account account
    * @return message feed
    */
-  deleteuser = async (account:string): Promise<any> => {
+  deleteuser = async (account: string): Promise<any> => {
     //console.log('[vtecxnext deleteuser] start.')
     // 入力値チェック
     checkNotNull(account, 'account')
     // vte.cxへリクエスト
     const method = 'DELETE'
     const url = `${SERVLETPATH_DATA}/?_deleteuser=${account}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -3040,29 +3100,29 @@ export class VtecxNext {
    * @param uids uid list
    * @return message feed
    */
-  deleteusers = async (accounts?:string[], uids?:string[]): Promise<any> => {
+  deleteusers = async (accounts?: string[], uids?: string[]): Promise<any> => {
     //console.log(`[vtecxnext deleteusers] start. feed=${feed}`)
     // 入力チェック
     if (isBlank(accounts) && isBlank(uids)) {
       throw new VtecxNextError(400, `account or uid is required.`)
     }
-    const feed:any = []
+    const feed: any = []
     if (accounts) {
       for (const account of accounts) {
-        const entry = {'title' : account}
+        const entry = { title: account }
         feed.push(entry)
       }
     }
     if (uids) {
       for (const uid of uids) {
-        const entry = {'link' : [{'___rel' : 'self', '___href' : `/_user/${uid}`}]}
+        const entry = { link: [{ ___rel: 'self', ___href: `/_user/${uid}` }] }
         feed.push(entry)
       }
     }
     // vte.cxへリクエスト
     const method = 'DELETE'
     const url = `${SERVLETPATH_DATA}/?_deleteuser`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -3081,14 +3141,14 @@ export class VtecxNext {
    * @param feed entries
    * @return message
    */
-  addacl = async (feed:any): Promise<any> => {
+  addacl = async (feed: any): Promise<any> => {
     //console.log('[vtecxnext addacl] start.')
     // 入力チェック
     checkNotNull(feed, 'Feed')
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_addacl`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -3108,14 +3168,14 @@ export class VtecxNext {
    * @param feed entries
    * @return message
    */
-  removeacl = async (feed:any): Promise<any> => {
+  removeacl = async (feed: any): Promise<any> => {
     //console.log('[vtecxnext removeacl] start.')
     // 入力チェック
     checkNotNull(feed, 'Feed')
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_removeacl`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -3135,14 +3195,14 @@ export class VtecxNext {
    * @param feed entries
    * @return message
    */
-  addalias = async (feed:any): Promise<any> => {
+  addalias = async (feed: any): Promise<any> => {
     //console.log('[vtecxnext addalias] start.')
     // 入力チェック
     checkNotNull(feed, 'Feed')
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_addalias`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -3162,14 +3222,14 @@ export class VtecxNext {
    * @param feed entries
    * @return message
    */
-  removealias = async (feed:any): Promise<any> => {
+  removealias = async (feed: any): Promise<any> => {
     //console.log('[vtecxnext removealias] start.')
     // 入力チェック
     checkNotNull(feed, 'Feed')
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_removealias`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -3189,7 +3249,7 @@ export class VtecxNext {
    * @param uri key
    * @return content url
    */
-  getcontenturl = async (uri:string): Promise<string> => {
+  getcontenturl = async (uri: string): Promise<string> => {
     //console.log(`[vtecxnext getcontenturl] start. uri=${uri}`)
     // キー入力値チェック
     checkUri(uri)
@@ -3203,7 +3263,7 @@ export class VtecxNext {
    * @param bysize true if registering with specified size
    * @returns message
    */
-  savefiles = async (uri:string, bysize?:boolean): Promise<any> => {
+  savefiles = async (uri: string, bysize?: boolean): Promise<any> => {
     //console.log(`[vtecxnext savefiles] start. uri=${uri}`)
     if (!this.req) {
       throw new VtecxNextError(421, 'Request is required.')
@@ -3212,26 +3272,26 @@ export class VtecxNext {
     checkUri(uri)
 
     type PromiseKeyBuffer = {
-      key:string,
-      promiseBuffer:Promise<ArrayBuffer>
+      key: string
+      promiseBuffer: Promise<ArrayBuffer>
     }
 
-    const formData:FormData = await this.req.formData()
-    const promiseKeyBuffers:PromiseKeyBuffer[] = []
-    const promises:Promise<Response>[] = []
+    const formData: FormData = await this.req.formData()
+    const promiseKeyBuffers: PromiseKeyBuffer[] = []
+    const promises: Promise<Response>[] = []
 
     // bufferの取得(非同期)
-    formData.forEach(async (val:FormDataEntryValue, key:string) => {
+    formData.forEach(async (val: FormDataEntryValue, key: string) => {
       //console.log(`[vtecxnext savefiles] key=${key} val=${val}`)
       if (val instanceof Blob) {
         const promiseBuffer = val.arrayBuffer()
-        const promiseKeyBuffer:PromiseKeyBuffer = {key, promiseBuffer}
+        const promiseKeyBuffer: PromiseKeyBuffer = { key, promiseBuffer }
         promiseKeyBuffers.push(promiseKeyBuffer)
       }
     })
 
     // vte.cxへリクエスト(buffer取得を待つ。リクエストは非同期。)
-    let contentUris:string = ''
+    let contentUris: string = ''
     for (const promiseKeyBuffer of promiseKeyBuffers) {
       const key = promiseKeyBuffer.key
       const buffer = await promiseKeyBuffer.promiseBuffer
@@ -3246,7 +3306,7 @@ export class VtecxNext {
     }
 
     // レスポンス取得
-    const msg:string = ''
+    const msg: string = ''
     for (const promise of promises) {
       const response = await promise
       //console.log(`[vtecxnext savefiles] response. status=${response.status}`)
@@ -3255,7 +3315,7 @@ export class VtecxNext {
       // レスポンスのエラーチェック
       await checkVtecxResponse(response)
     }
-    return {'feed' : {'title' : contentUris}}
+    return { feed: { title: contentUris } }
   }
 
   /**
@@ -3263,7 +3323,7 @@ export class VtecxNext {
    * @param uri key
    * @returns message
    */
-  savefilesBySize = async (uri:string): Promise<any> => {
+  savefilesBySize = async (uri: string): Promise<any> => {
     return this.savefiles(uri, true)
   }
 
@@ -3275,7 +3335,7 @@ export class VtecxNext {
    * @param arrayBuffer content (for batch)
    * @return message
    */
-  putcontent = async (uri:string, filename?:string, arrayBuffer?:ArrayBuffer): Promise<any> => {
+  putcontent = async (uri: string, filename?: string, arrayBuffer?: ArrayBuffer): Promise<any> => {
     return this.putcontentProc(uri, false, filename, arrayBuffer)
   }
 
@@ -3287,7 +3347,12 @@ export class VtecxNext {
    * @param arrayBuffer content (for batch)
    * @return message
    */
-  private putcontentProc = async (uri:string, bysize?:boolean, filename?:string, arrayBuffer?:ArrayBuffer): Promise<any> => {
+  private putcontentProc = async (
+    uri: string,
+    bysize?: boolean,
+    filename?: string,
+    arrayBuffer?: ArrayBuffer
+  ): Promise<any> => {
     //console.log(`[vtecxnext putcontent] start. uri=${uri} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
     if (!this.req && !arrayBuffer) {
       throw new VtecxNextError(421, 'Request is required.')
@@ -3298,7 +3363,7 @@ export class VtecxNext {
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_content${bysize ? '&_bysize' : ''}`
     //console.log(`[vtecxnext putcontent] request. url=${url}`)
-    const headers:any = {'Content-Type' : this.req?.headers.get('content-type')}
+    const headers: any = { 'Content-Type': this.req?.headers.get('content-type') }
     if (filename) {
       headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(filename)}"`
     }
@@ -3309,7 +3374,7 @@ export class VtecxNext {
     } else if (this.req) {
       buf = await this.req.arrayBuffer()
     }
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, buf, headers)
     } catch (e) {
@@ -3328,7 +3393,7 @@ export class VtecxNext {
    * @param uri key
    * @return message
    */
-  putcontentBySize = async (uri:string): Promise<any> => {
+  putcontentBySize = async (uri: string): Promise<any> => {
     return this.putcontentProc(uri, true)
   }
 
@@ -3339,7 +3404,7 @@ export class VtecxNext {
    * @param filename attachment file name
    * @return numbered key
    */
-  postcontent = async (parenturi:string, extension?:string, filename?:string): Promise<any> => {
+  postcontent = async (parenturi: string, extension?: string, filename?: string): Promise<any> => {
     //console.log(`[vtecxnext postcontent] start. parenturi=${parenturi} extension=${extension} filename=${filename}`)
     if (!this.req) {
       throw new VtecxNextError(421, 'Request is required.')
@@ -3350,13 +3415,13 @@ export class VtecxNext {
     const method = 'POST'
     const url = `${SERVLETPATH_PROVIDER}${parenturi}?_content${extension ? '&_ext=' + extension : ''}`
     //console.log(`[vtecxnext postcontent] request. url=${url}`)
-    const headers:any = {'Content-Type' : this.req.headers.get('content-type')}
+    const headers: any = { 'Content-Type': this.req.headers.get('content-type') }
     if (filename) {
       headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(filename)}"`
     }
     //const buf = await buffer(this.req)
     const buf = await this.req.arrayBuffer()
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, buf, headers)
     } catch (e) {
@@ -3375,14 +3440,14 @@ export class VtecxNext {
    * @param uri key
    * @return message
    */
-  deletecontent = async (uri:string): Promise<any> => {
+  deletecontent = async (uri: string): Promise<any> => {
     //console.log(`[vtecxnext deletecontent] start. uri=${uri}`)
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'DELETE'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_content`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -3402,14 +3467,14 @@ export class VtecxNext {
    * @param uri key
    * @return true
    */
-  getcontent = async (uri:string): Promise<boolean> => {
+  getcontent = async (uri: string): Promise<boolean> => {
     //console.log(`[vtecxnext getcontent] start. uri=${uri}`)
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_content`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -3437,12 +3502,12 @@ export class VtecxNext {
   }
 
   /**
-   * get signed url for upload content 
+   * get signed url for upload content
    * @param uri key
    * @param filename attachment file name
    * @return message
    */
-  getSignedUrlToPutContent = async (uri:string, filename?:string): Promise<any> => {
+  getSignedUrlToPutContent = async (uri: string, filename?: string): Promise<any> => {
     //console.log(`[vtecxnext getSignedUrlToPutContent] start. uri=${uri} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
     // キー入力値チェック
     checkUri(uri)
@@ -3450,11 +3515,11 @@ export class VtecxNext {
     const method = 'PUT'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_content&_signedurl`
     //console.log(`[vtecxnext getSignedUrlToPutContent] request. url=${url}`)
-    const headers:any = {'Content-Type' : this.req?.headers?.get('content-type')}
+    const headers: any = { 'Content-Type': this.req?.headers?.get('content-type') }
     if (filename) {
       headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(filename)}"`
     }
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, undefined, headers)
     } catch (e) {
@@ -3474,7 +3539,11 @@ export class VtecxNext {
    * @param extension extension
    * @return numbered key
    */
-  getSignedUrlToPostContent = async (parenturi:string, extension?:string, filename?:string): Promise<any> => {
+  getSignedUrlToPostContent = async (
+    parenturi: string,
+    extension?: string,
+    filename?: string
+  ): Promise<any> => {
     //console.log(`[vtecxnext getSignedUrlToPostContent] start. parenturi=${parenturi} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
     // キー入力値チェック
     checkUri(parenturi)
@@ -3482,11 +3551,11 @@ export class VtecxNext {
     const method = 'POST'
     const url = `${SERVLETPATH_PROVIDER}${parenturi}?_content&_signedurl${extension ? '&_ext=' + extension : ''}`
     //console.log(`[vtecxnext getSignedUrlToPostContent] request. url=${url}`)
-    const headers:any = {'Content-Type' : this.req?.headers?.get('content-type')}
+    const headers: any = { 'Content-Type': this.req?.headers?.get('content-type') }
     if (filename) {
       headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(filename)}"`
     }
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, undefined, headers)
     } catch (e) {
@@ -3501,18 +3570,18 @@ export class VtecxNext {
   }
 
   /**
-   * get signed url for download content 
+   * get signed url for download content
    * @param uri key
    * @return message
    */
-  getSignedUrlToGetContent = async (uri:string): Promise<any> => {
+  getSignedUrlToGetContent = async (uri: string): Promise<any> => {
     //console.log(`[vtecxnext getSignedUrlToGetContent] start. uri=${uri}`)
     // キー入力値チェック
     checkUri(uri)
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}${uri}?_content&_signedurl`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -3558,12 +3627,12 @@ export class VtecxNext {
    * @param chs length of one side of QR code
    * @return QR code URL in feed.title
    */
-  getTotpLink = async (chs?:number): Promise<any> => {
+  getTotpLink = async (chs?: number): Promise<any> => {
     //console.log('[vtecxnext getTotpLink] start.')
     // vte.cxへリクエスト
     const method = 'POST'
     const url = `${SERVLETPATH_DATA}/?_createtotp${chs ? '&_chs=' + String(chs) : ''}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -3583,14 +3652,14 @@ export class VtecxNext {
    * @param feed one-time password for feed.title when you do book registration
    * @return message
    */
-  createTotp = async (feed:any): Promise<any> => {
+  createTotp = async (feed: any): Promise<any> => {
     //console.log('[vtecxnext createTotp] start.')
     // 入力チェック
     checkNotNull(feed, 'Feed')
     // vte.cxへリクエスト
     const method = 'POST'
     const url = `${SERVLETPATH_DATA}/?_createtotp`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -3610,12 +3679,12 @@ export class VtecxNext {
    * @param account target account (for service admin user)
    * @return message
    */
-  deleteTotp = async (account?:string): Promise<any> => {
+  deleteTotp = async (account?: string): Promise<any> => {
     //console.log('[vtecxnext deleteTotp] start.')
     // vte.cxへリクエスト
     const method = 'DELETE'
     const url = `${SERVLETPATH_DATA}/?_deletetotp${account ? '=' + account : ''}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -3640,7 +3709,7 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_changetdid`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -3660,7 +3729,7 @@ export class VtecxNext {
    * @param rxid RXID
    * @return message feed
    */
-  mergeOAuthUserLine = async (rxid:string): Promise<any> => {
+  mergeOAuthUserLine = async (rxid: string): Promise<any> => {
     //console.log(`[vtecxnext mergeOAuthUserLine] start. feed=${feed}`)
     return this.mergeOAuthUser('line', rxid)
   }
@@ -3670,27 +3739,27 @@ export class VtecxNext {
    * @param CreateGroupadminInfo group name and uid list
    * @return message feed
    */
-  createGroupadmin = async (createGroupadminInfos:CreateGroupadminInfo[]): Promise<any> => {
+  createGroupadmin = async (createGroupadminInfos: CreateGroupadminInfo[]): Promise<any> => {
     //console.log(`[vtecxnext createGroupadmin] start. feed=${feed}`)
     // 入力チェック
     checkNotNull(createGroupadminInfos, 'group name')
-    const feed:any = []
+    const feed: any = []
     for (const createGroupadminInfo of createGroupadminInfos) {
       checkNotNull(createGroupadminInfo.group, 'group name')
       checkContainSlash(createGroupadminInfo.group, 'group name')
       checkNotNull(createGroupadminInfo.uids, 'uid')
-      const links:any = [{'___rel' : 'self', '___href' : `/_group/${createGroupadminInfo.group}`}]
+      const links: any = [{ ___rel: 'self', ___href: `/_group/${createGroupadminInfo.group}` }]
       for (const uid of createGroupadminInfo.uids) {
-        const link = {'___rel' : 'via', '___title' : uid}
+        const link = { ___rel: 'via', ___title: uid }
         links.push(link)
       }
-      const entry = {'link' : links}
+      const entry = { link: links }
       feed.push(entry)
     }
     // vte.cxへリクエスト
     const method = 'POST'
     const url = `${SERVLETPATH_DATA}/?_creategroupadmin`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -3710,22 +3779,22 @@ export class VtecxNext {
    * @param async execute async
    * @return message feed
    */
-  deleteGroupadmin = async (groupNames:string[], async?:boolean): Promise<any> => {
+  deleteGroupadmin = async (groupNames: string[], async?: boolean): Promise<any> => {
     //console.log(`[vtecxnext deleteGroupadmin] start. feed=${feed}`)
     // 入力チェック
     checkNotNull(groupNames, 'group name')
-    const feed:any = []
+    const feed: any = []
     for (const groupName of groupNames) {
       checkNotNull(groupName, 'group name')
       checkContainSlash(groupName, 'group name')
-      const links:any = [{'___rel' : 'self', '___href' : `/_group/${groupName}`}]
-      const entry = {'link' : links}
+      const links: any = [{ ___rel: 'self', ___href: `/_group/${groupName}` }]
+      const entry = { link: links }
       feed.push(entry)
     }
     // vte.cxへリクエスト
     const method = 'DELETE'
     const url = `${SERVLETPATH_DATA}/?_deletegroupadmin${async ? '&_async' : ''}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -3744,14 +3813,14 @@ export class VtecxNext {
    * @param name property name
    * @return property value
    */
-  property = async (name:string): Promise<string|null> => {
+  property = async (name: string): Promise<string | null> => {
     //console.log('[vtecxnext property] start.')
     // 入力チェック
     checkNotNull(name, 'Name')
     // vte.cxへリクエスト
     const method = 'GET'
     const url = `${SERVLETPATH_PROVIDER}/?_property=${name}`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -3782,11 +3851,18 @@ export class VtecxNext {
    * @param mode RequestMode ("cors" | "navigate" | "no-cors" | "same-origin")
    * @returns promise
    */
-  private requestVtecx = async (method:string, url:string, body?:any, additionalHeaders?:any, targetService?:string, mode?:RequestMode): Promise<Response> => {
+  private requestVtecx = async (
+    method: string,
+    url: string,
+    body?: any,
+    additionalHeaders?: any,
+    targetService?: string,
+    mode?: RequestMode
+  ): Promise<Response> => {
     // cookieの値をvte.cxへのリクエストヘッダに設定
     const cookie = this.editRequestCookie()
     //console.log(`[requestVtecx] cookie = ${cookie}`)
-    const headers:any = cookie ? {'Cookie' : cookie} : {}
+    const headers: any = cookie ? { Cookie: cookie } : {}
     if (this.accessToken) {
       headers.Authorization = `Token ${this.accessToken}`
     }
@@ -3823,7 +3899,7 @@ export class VtecxNext {
    * vte.cxからのset-cookieを、ブラウザへレスポンスする。
    * @param response vte.cxからのレスポンス
    */
-  private setCookie = (response:Response): void => {
+  private setCookie = (response: Response): void => {
     // set-cookieの値をレスポンスヘッダ格納変数にセット
     let setCookieVal = response.headers.get('set-cookie')
     if (setCookieVal === '' || setCookieVal) {
@@ -3836,7 +3912,7 @@ export class VtecxNext {
    * ログイン時にレスポンスされたvte.cxからのset-cookieを保持する。
    * @param response vte.cxからのレスポンス
    */
-  private setLoginCookie = (response:Response): void => {
+  private setLoginCookie = (response: Response): void => {
     // set-cookieの値をレスポンスヘッダ格納変数にセット
     let setCookieVal = response.headers.get('set-cookie')
     if (setCookieVal) {
@@ -3852,12 +3928,12 @@ export class VtecxNext {
    * ログイン後のCookie編集
    * @returns cookie
    */
-  private editRequestCookie = (): string|null => {
+  private editRequestCookie = (): string | null => {
     let cookie = this.req ? this.req.headers.get('cookie') : null
     if (!this.loginCookies) {
       return cookie
     }
-    let retCookie:string = ''
+    let retCookie: string = ''
     if (cookie) {
       const tmpCookies = cookie.split(';')
       for (const tmpCookie of tmpCookies) {
@@ -3866,7 +3942,7 @@ export class VtecxNext {
         const tmpVal = tmpKeyVal[1]
         if (!this.loginCookies.hasOwnProperty(tmpName)) {
           retCookie = `${retCookie}${tmpName}=${tmpVal}; `
-        //} else {
+          //} else {
           //console.log(`[editRequestCookie] hasOwnProperty (not set) : ${tmpName}=${tmpVal}`)
         }
       }
@@ -3884,9 +3960,9 @@ export class VtecxNext {
    * @param response vte.cxからのレスポンス
    * @param res ブラウザへのレスポンス
    */
-  private setResponseHeaders = (response:Response): void => {
+  private setResponseHeaders = (response: Response): void => {
     const it = response.headers.entries()
-    let header:IteratorResult<[string, string], any> = it.next()
+    let header: IteratorResult<[string, string], any> = it.next()
     while (header && !header.done) {
       const name = header.value[0]
       if (name.startsWith('content-') || name.startsWith('x-')) {
@@ -3904,7 +3980,7 @@ export class VtecxNext {
    * @param oauthUrl OAuth authorization request url
    * @return true
    */
-  private oauth = async (provider:string, oauthUrl:string): Promise<boolean> => {
+  private oauth = async (provider: string, oauthUrl: string): Promise<boolean> => {
     //console.log(`[vtecxnext oauth] start. provider=${provider} oauthUrl=${oauthUrl}`)
     if (!this.req) {
       throw new VtecxNextError(421, 'Request is required.')
@@ -3917,7 +3993,7 @@ export class VtecxNext {
     // vte.cxへリクエスト (state取得)
     const method = 'POST'
     const url = `${SERVLETPATH_OAUTH}/${provider}/create_state`
-    let response:Response
+    let response: Response
     try {
       response = await this.requestVtecx(method, url)
     } catch (e) {
@@ -3958,7 +4034,7 @@ export class VtecxNext {
    * @param oauthUrl OAuth get accesstoken request url
    * @return {'client_id', 'client_secret', 'redirect_uri', 'state', 'access_token'}
    */
-  private oauthGetAccesstoken = async (provider:string, accesstokenUrl:string): Promise<any> => {
+  private oauthGetAccesstoken = async (provider: string, accesstokenUrl: string): Promise<any> => {
     //console.log(`[vtecxnext oauthGetAccesstoken] start. provider=${provider} oauthUrl=${accesstokenUrl}`)
     if (!this.req) {
       throw new VtecxNextError(421, 'Request is required.')
@@ -3979,7 +4055,7 @@ export class VtecxNext {
     const vtecxMethod = 'POST'
     const vtecxUrl = `${SERVLETPATH_OAUTH}/${provider}/check_state?state=${state}`
     //console.log(`[vtecxnext oauthGetAccesstoken] vtecxUrl=${vtecxUrl}`)
-    let vtecxResponse:Response
+    let vtecxResponse: Response
     try {
       vtecxResponse = await this.requestVtecx(vtecxMethod, vtecxUrl)
     } catch (e) {
@@ -4008,11 +4084,11 @@ export class VtecxNext {
     // アクセストークン取得URL生成
     const accesstokenMethod = 'POST'
     const accessTokenData = {
-      'grant_type': 'authorization_code',
-      'code': code,
-      'redirect_uri': redirect_uri,
-      'client_id': client_id,
-      'client_secret': client_secret
+      grant_type: 'authorization_code',
+      code: code,
+      redirect_uri: redirect_uri,
+      client_id: client_id,
+      client_secret: client_secret
     }
     const accesstokenBody = createURLSearchParams(accessTokenData).toString()
 
@@ -4020,17 +4096,17 @@ export class VtecxNext {
     //console.log(`[vtecxnext oauthGetAccesstoken] accesstokenUrl=${accesstokenUrl}`)
     //console.log(`[vtecxnext oauthGetAccesstoken] accesstokenBodyStr=${accesstokenBodyStr}`)
     //const accesstokenBody = Buffer.from(accesstokenBodyStr, 'utf-8')
-    const requestInit:RequestInit = {
+    const requestInit: RequestInit = {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Content-Length': String(accesstokenBody.length),
-      },    
+        'Content-Length': String(accesstokenBody.length)
+      },
       body: accesstokenBody,
       method: accesstokenMethod,
-      cache: 'no-cache',
+      cache: 'no-cache'
     }
 
-    let accesstokenResponse:Response
+    let accesstokenResponse: Response
     try {
       accesstokenResponse = await fetchProc(accesstokenUrl, requestInit)
     } catch (e) {
@@ -4040,7 +4116,10 @@ export class VtecxNext {
       const errorInfo = await accesstokenResponse.json()
       //console.log(`[vtecxnext oauthGetAccesstoken] Get accesstoken failed. ${JSON.stringify(errorInfo)}`)
       const errMsg = `${'error' in errorInfo ? errorInfo.error + '. ' : ''} ${'error_description' in errorInfo ? errorInfo.error_description : ''}`
-      throw new VtecxNextError(401, `Get accesstoken failed. status=${accesstokenResponse.status} ${errMsg}`)
+      throw new VtecxNextError(
+        401,
+        `Get accesstoken failed. status=${accesstokenResponse.status} ${errMsg}`
+      )
     }
     const accesstokenInfo = await accesstokenResponse.json()
     const access_token = accesstokenInfo.access_token
@@ -4049,11 +4128,11 @@ export class VtecxNext {
     }
 
     return {
-      'client_id' : client_id, 
-      'client_secret' : client_secret, 
-      'redirect_uri' : redirect_uri, 
-      'state' : state, 
-      'access_token' : access_token
+      client_id: client_id,
+      client_secret: client_secret,
+      redirect_uri: redirect_uri,
+      state: state,
+      access_token: access_token
     }
   }
 
@@ -4062,20 +4141,20 @@ export class VtecxNext {
    * @param oauthInfo OAuth info {'client_id', 'client_secret', 'redirect_uri', 'state', 'access_token'}
    * @return userinfo {'guid', 'nickname', 'state'}
    */
-  private oauthGetUserinfoLine = async (oauthInfo:any): Promise<any> => {
+  private oauthGetUserinfoLine = async (oauthInfo: any): Promise<any> => {
     //console.log(`[vtecxnext oauthGetUserinfoLine] start. oauthInfo=${JSON.stringify(oauthInfo)}`)
 
     // LINEユーザ識別情報取得リクエスト
     const url = 'https://api.line.me/v2/profile'
     const method = 'GET'
-    const headers = {'Authorization' : `Bearer ${oauthInfo.access_token}`}
+    const headers = { Authorization: `Bearer ${oauthInfo.access_token}` }
     //console.log(`[vtecxnext oauthGetUserinfoLine] url=${url}`)
-    const requestInit:RequestInit = {
+    const requestInit: RequestInit = {
       headers: headers,
       method: method,
-      cache: 'no-cache',
+      cache: 'no-cache'
     }
-    let response:Response
+    let response: Response
     try {
       response = await fetchProc(url, requestInit)
     } catch (e) {
@@ -4092,9 +4171,9 @@ export class VtecxNext {
       throw new VtecxNextError(401, `Get user information failed. `)
     }
     return {
-      'guid' : guid, 
-      'nickname' : nickname, 
-      'state' : oauthInfo.state
+      guid: guid,
+      nickname: nickname,
+      state: oauthInfo.state
     }
   }
 
@@ -4104,7 +4183,7 @@ export class VtecxNext {
    * @param userInfo user info
    * @return true if log in has been successful.
    */
-  private oauthLink = async (provider:string, userInfo:any): Promise<boolean> => {
+  private oauthLink = async (provider: string, userInfo: any): Promise<boolean> => {
     //console.log(`[vtecxnext oauthLink] start. userInfo=${JSON.stringify(userInfo)}`)
     // OAuthリンク・ログイン
     // reCAPTCHA tokenは任意
@@ -4112,8 +4191,8 @@ export class VtecxNext {
     const param = ''
     const method = 'POST'
     const url = `${SERVLETPATH_OAUTH}/${provider}/link?state=${userInfo.state}${param}`
-    const reqFeed = [{'title' : userInfo.guid, 'subtitle' : userInfo.nickname}]
-    let response:Response
+    const reqFeed = [{ title: userInfo.guid, subtitle: userInfo.nickname }]
+    let response: Response
     try {
       response = await fetchVtecx(method, url, {}, JSON.stringify(reqFeed))
     } catch (e) {
@@ -4139,7 +4218,7 @@ export class VtecxNext {
    * @param rxid RXID
    * @return message feed
    */
-  private mergeOAuthUser = async (provider:string, rxid:string): Promise<any> => {
+  private mergeOAuthUser = async (provider: string, rxid: string): Promise<any> => {
     //console.log(`[vtecxnext mergeOAuthUser] start. feed=${feed}`)
     // 入力チェック
     checkNotNull(provider, 'Provider')
@@ -4147,8 +4226,8 @@ export class VtecxNext {
     // vte.cxへリクエスト
     const method = 'PUT'
     const url = `${SERVLETPATH_DATA}/?_mergeoauthuser`
-    const feed = {'feed' : {'subtitle' : provider, 'rights' : rxid}}
-    let response:Response
+    const feed = { feed: { subtitle: provider, rights: rxid } }
+    let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
     } catch (e) {
@@ -4168,10 +4247,10 @@ export class VtecxNext {
  * response class
  */
 export class VtecxResponse {
-  status:number
-  header:any
-  data:any
-  constructor(status:number, header:any, data:any) {
+  status: number
+  header: any
+  data: any
+  constructor(status: number, header: any, data: any) {
     this.status = status
     this.header = header
     this.data = data
@@ -4182,8 +4261,8 @@ export class VtecxResponse {
  * Error returned from vte.cx
  */
 export class VtecxNextError extends Error {
-  status:number
-  constructor(status:number, message:string) {
+  status: number
+  constructor(status: number, message: string) {
     super(message)
     this.name = 'VtecxNextError'
     this.status = status
@@ -4196,7 +4275,7 @@ export class VtecxNextError extends Error {
 export class FetchError extends VtecxNextError {
   //url:string
   //requestInit:RequestInit
-  constructor(message:string) {
+  constructor(message: string) {
     super(500, message)
     this.name = 'FetchError'
     //this.url = url
@@ -4210,18 +4289,18 @@ export class FetchError extends VtecxNextError {
  * @param value チェックオブジェクト
  * @returns VtecxNextError型の場合true
  */
-export const isVtecxNextError = (value:unknown):value is VtecxNextError => {
+export const isVtecxNextError = (value: unknown): value is VtecxNextError => {
   // 値がオブジェクトであるかの判定
-  if (typeof value !== "object" || value === null) {
+  if (typeof value !== 'object' || value === null) {
     return false
   }
-  const { status, message } = value as Record<keyof VtecxNextError, unknown>;
+  const { status, message } = value as Record<keyof VtecxNextError, unknown>
   // statusプロパティーが数値型かを判定
-  if (typeof status !== "number") {
+  if (typeof status !== 'number') {
     return false
   }
   // messageプロパティーが文字列型かを判定
-  if (typeof message !== "string") {
+  if (typeof message !== 'string') {
     return false
   }
   return true
@@ -4237,9 +4316,15 @@ export const isVtecxNextError = (value:unknown):value is VtecxNextError => {
  * @param mode RequestMode ("cors" | "navigate" | "no-cors" | "same-origin")
  * @returns promise
  */
-const fetchVtecx = async (method:string, url:string, pHeaders:any, body?:any, mode?:RequestMode): Promise<Response> => {
+const fetchVtecx = async (
+  method: string,
+  url: string,
+  pHeaders: any,
+  body?: any,
+  mode?: RequestMode
+): Promise<Response> => {
   //console.log(`[vtecxnext fetchVtecx] url=${process.env.VTECX_URL}${url}`)
-  const headers:[string, string][] = []
+  const headers: [string, string][] = []
   if (pHeaders) {
     for (const key in pHeaders) {
       //console.log(`[vtecxnext fetchVtecx] request header = ${key}: ${pHeaders[key]}`)
@@ -4257,21 +4342,21 @@ const fetchVtecx = async (method:string, url:string, pHeaders:any, body?:any, mo
   }
 
   //console.log(`[vtecxnext fetchVtecx] headers = ${JSON.stringify(headers)}`)
-  const requestInit:RequestInit = {
+  const requestInit: RequestInit = {
     body: body,
     method: method,
     headers: headers,
-    cache: 'no-cache',
+    cache: 'no-cache'
   }
   if (mode) {
     requestInit['mode'] = mode
   }
-  
+
   return fetchProc(`${VTECX_URL}${url}`, requestInit)
 }
 
-const newFetchError = (e:any, isVtecx:boolean):FetchError => {
-  let errMsg:string
+const newFetchError = (e: any, isVtecx: boolean): FetchError => {
+  let errMsg: string
   if (e instanceof Error) {
     const errName = isVtecx ? 'VtecxFetchError' : 'FetchError'
     errMsg = `${errName}: ${e.message}`
@@ -4288,7 +4373,7 @@ const newFetchError = (e:any, isVtecx:boolean):FetchError => {
  * @param requestInit RequestInit
  * @returns Promise
  */
-const fetchProc = (url:string, requestInit:RequestInit): Promise<Response> => {
+const fetchProc = (url: string, requestInit: RequestInit): Promise<Response> => {
   //console.log(`[vtecxnext fetchProc] url=${url}`)
   return fetch(url, requestInit)
 }
@@ -4298,7 +4383,7 @@ const fetchProc = (url:string, requestInit:RequestInit): Promise<Response> => {
  * @param readable Readable
  * @returns buffer
  */
-const buffer = async (readable: Readable):Promise<Buffer> => {
+const buffer = async (readable: Readable): Promise<Buffer> => {
   const chunks = []
   for await (const chunk of readable) {
     chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk)
@@ -4312,7 +4397,7 @@ const buffer = async (readable: Readable):Promise<Buffer> => {
  * @param val チェック値
  * @returns null、undefined、空文字の場合true
  */
-const isBlank = (val:any): boolean => {
+const isBlank = (val: any): boolean => {
   if (val === null || val === undefined || val === '') {
     return true
   }
@@ -4328,7 +4413,7 @@ const isBlank = (val:any): boolean => {
  * @param response Response
  * @returns 戻り値はなし。エラーの場合VtecxNextErrorをスロー。
  */
-const checkVtecxResponse = async (response:Response): Promise<void> => {
+const checkVtecxResponse = async (response: Response): Promise<void> => {
   //console.log(`[vtecxnext checkVtecxResponse] status=${response.status}`)
   if (response.status < 400 && response.status !== 203) {
     //console.log(`[vtecxnext checkVtecxResponse] return.`)
@@ -4353,7 +4438,7 @@ const checkVtecxResponse = async (response:Response): Promise<void> => {
  * @param name 項目名。エラーの場合メッセージに使用。
  * @returns 戻り値はなし。エラーの場合VtecxNextErrorをスロー。
  */
-const checkNotNull = (val:any, name?:string): void => {
+const checkNotNull = (val: any, name?: string): void => {
   if (isBlank(val)) {
     throw new VtecxNextError(400, `${name ?? 'Key'} is required.`)
   }
@@ -4365,7 +4450,7 @@ const checkNotNull = (val:any, name?:string): void => {
  * @param val チェック文字列
  * @param name エラーの場合の項目名称
  */
-const checkContainSlash = (val:string, name:string): void => {
+const checkContainSlash = (val: string, name: string): void => {
   if (val.indexOf('/') > -1) {
     throw new VtecxNextError(400, `${name} cannot contain a slash : ${val}`)
   }
@@ -4379,7 +4464,7 @@ const checkContainSlash = (val:string, name:string): void => {
  * @param name 項目名。エラーの場合メッセージに使用。
  * @returns 戻り値はなし。エラーの場合VtecxNextErrorをスロー。
  */
- const checkUri = (str:string, name?:string): void => {
+const checkUri = (str: string, name?: string): void => {
   checkNotNull(str, name)
   if (!str.startsWith('/')) {
     throw new VtecxNextError(400, `${name ?? 'Key'} must start with a slash.`)
@@ -4391,7 +4476,7 @@ const checkContainSlash = (val:string, name:string): void => {
  * @param response レスポンス
  * @returns JSON
  */
-const getJson = async (response:Response): Promise<any> => {
+const getJson = async (response: Response): Promise<any> => {
   // ステータスが204の場合nullを返す。
   if (response.status === 204) {
     return null
@@ -4404,7 +4489,7 @@ const getJson = async (response:Response): Promise<any> => {
   try {
     return await response.json()
   } catch (e) {
-    let errMsg:string
+    let errMsg: string
     if (e instanceof Error) {
       //console.log(`[vtecxnext getJson] Error occured. ${e.name}: ${e.message}`)
       errMsg = `JsonError: ${e.message}`
@@ -4420,7 +4505,7 @@ const getJson = async (response:Response): Promise<any> => {
  * @param tablenames テーブル名(キー:entry第一階層名、値:テーブル名)
  * @returns BigQuery登録・削除時のテーブル名指定文字列 ({スキーマ第一階層名}:{テーブル名}, ...)
  */
-const editBqTableNames = (tablenames:any): any => {
+const editBqTableNames = (tablenames: any): any => {
   //console.log(`[vtecxnext editBqTableNames] tablenames = ${tablenames}`)
   if (!tablenames) {
     return null
@@ -4429,7 +4514,7 @@ const editBqTableNames = (tablenames:any): any => {
   for (const key in tablenames) {
     const value = tablenames[key]
     //console.log(`[vtecxnext editBqTableNames] ${key}=${value}`)
-    result = `${result ? result + ',' : ''}${key}:${value}` 
+    result = `${result ? result + ',' : ''}${key}:${value}`
   }
   //console.log(`[vtecxnext editBqTableNames] result=${result}`)
   return result
@@ -4442,16 +4527,16 @@ const editBqTableNames = (tablenames:any): any => {
  * @param parent 戻り値JSONの親項目(任意)か、CSVのヘッダ(任意)
  * @returns SQLをセットしたfeed
  */
-const editSqlArgument = (sql:string, values?:any[], parent?:string): any => {
+const editSqlArgument = (sql: string, values?: any[], parent?: string): any => {
   // SQLに引数を代入（SQLインジェクション対応）
   const editSql = values ? formatSql(sql, values) : sql
   //console.log(`[vtecxnext editSqlArgument] sql=${editSql}`)
   // 引数
-  const entry:any = {'title' : editSql}
+  const entry: any = { title: editSql }
   if (parent) {
     entry['subtitle'] = parent
   }
-  const feed:any[] = [entry]
+  const feed: any[] = [entry]
   return feed
 }
 /**
@@ -4460,10 +4545,10 @@ const editSqlArgument = (sql:string, values?:any[], parent?:string): any => {
  * @param values SQLに指定する値
  * @returns SQLをセットしたfeed
  */
-const editSqlsArgument = (sqls:string[], values?:any[][]): any => {
+const editSqlsArgument = (sqls: string[], values?: any[][]): any => {
   // SQLに引数を代入（SQLインジェクション対応）
   const len = sqls.length
-  let editedSqls:string[]
+  let editedSqls: string[]
   if (values) {
     if (sqls.length !== values.length) {
       throw new VtecxNextError(400, ``)
@@ -4475,10 +4560,10 @@ const editSqlsArgument = (sqls:string[], values?:any[][]): any => {
   } else {
     editedSqls = sqls
   }
-  const feed:any[] = []
+  const feed: any[] = []
   let i = 0
   for (const editSql of editedSqls) {
-    const entry = {'title' : editSql}
+    const entry = { title: editSql }
     feed[i] = entry
     i++
   }
@@ -4491,7 +4576,7 @@ const editSqlsArgument = (sqls:string[], values?:any[][]): any => {
  * @param values 置き換え対象値
  * @returns 値が代入されたSQL
  */
-const formatSql = (sql:string, values:any[]): string => {
+const formatSql = (sql: string, values: any[]): string => {
   if (!values) {
     return sql
   }
@@ -4500,18 +4585,18 @@ const formatSql = (sql:string, values:any[]): string => {
 
 /**
  * linkの編集
- * @param rel relに指定する値 
+ * @param rel relに指定する値
  * @param hrefs hrefに指定する値のリスト
  * @returns link
  */
-const getLinks = (rel:string, hrefs:string[]): any => {
+const getLinks = (rel: string, hrefs: string[]): any => {
   if (!rel || !hrefs) {
     return undefined
   }
   const links = []
   let idx = 0
   for (const href of hrefs) {
-    const link = {'___rel' : rel, '___href' : href}
+    const link = { ___rel: rel, ___href: href }
     links[idx] = link
     idx++
   }
@@ -4524,7 +4609,7 @@ const getLinks = (rel:string, hrefs:string[]): any => {
  * @param oauthUrl URL
  * @returns Origin
  */
-const getOrigin = (oauthUrl:string):string => {
+const getOrigin = (oauthUrl: string): string => {
   const tmpIdx = oauthUrl.indexOf('://') + 3
   let idx = oauthUrl.indexOf('/', tmpIdx)
   if (idx < 0) {
@@ -4538,8 +4623,8 @@ const getOrigin = (oauthUrl:string):string => {
  * @param data JSON
  * @returns URLSearchParams
  */
-const createURLSearchParams = (data:any) => {
+const createURLSearchParams = (data: any) => {
   const params = new URLSearchParams()
-  Object.keys(data).forEach(key => params.append(key, data[key]))
+  Object.keys(data).forEach((key) => params.append(key, data[key]))
   return params
 }
