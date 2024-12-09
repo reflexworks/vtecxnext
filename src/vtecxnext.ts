@@ -2910,7 +2910,7 @@ export class VtecxNext {
     checkNotNull(account, 'account')
     // vte.cxへリクエスト
     const method = 'PUT'
-    const url = `${SERVLETPATH_DATA}/?_revokeuser=${account}${isDeleteGroups ? '&_deletegroup=true' : ''}`
+    const url = `${SERVLETPATH_PROVIDER}/?_revokeuser=${account}${isDeleteGroups ? '&_deletegroup=true' : ''}`
     let response: Response
     try {
       response = await this.requestVtecx(method, url)
@@ -2958,7 +2958,7 @@ export class VtecxNext {
     }
     // vte.cxへリクエスト
     const method = 'PUT'
-    const url = `${SERVLETPATH_DATA}/?_revokeuser${isDeleteGroups ? '&_deletegroup=true' : ''}`
+    const url = `${SERVLETPATH_PROVIDER}/?_revokeuser${isDeleteGroups ? '&_deletegroup=true' : ''}`
     let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
@@ -2984,7 +2984,7 @@ export class VtecxNext {
     checkNotNull(account, 'account')
     // vte.cxへリクエスト
     const method = 'PUT'
-    const url = `${SERVLETPATH_DATA}/?_activateuser=${account}`
+    const url = `${SERVLETPATH_PROVIDER}/?_activateuser=${account}`
     let response: Response
     try {
       response = await this.requestVtecx(method, url)
@@ -3027,7 +3027,7 @@ export class VtecxNext {
     }
     // vte.cxへリクエスト
     const method = 'PUT'
-    const url = `${SERVLETPATH_DATA}/?_activateuser`
+    const url = `${SERVLETPATH_PROVIDER}/?_activateuser`
     let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))
