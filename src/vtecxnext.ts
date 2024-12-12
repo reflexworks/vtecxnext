@@ -1477,9 +1477,9 @@ export class VtecxNext {
         `1,${String(PAGINATION_NUM)}`,
         targetService
       )
-      // メモリソートの場合は全てのカーソルリストを作成する
+      // メモリソートの場合はvte.cx側で全てのカーソルリストを作成する
       if (paginationInfo.hasNext && !paginationInfo.isMemorysort) {
-        // 次のカーソルリスト作成 (非同期のまま)
+        // メモリソートでない場合、次のカーソルリスト作成 (非同期のまま)
         this.nextPagination(uri, PAGINATION_NUM, targetService)
       }
       if (paginationInfo.lastPageNumber === 0) {
@@ -1513,14 +1513,24 @@ export class VtecxNext {
    */
   private nextPagination = async (uri: string, prevLastPage: number, targetService?: string) => {
     const firstPage = prevLastPage + 1
-    const lastPage = prevLastPage + prevLastPage
-    const paginationInfo = await this.pagination(
-      uri,
-      `${String(firstPage)},${String(lastPage)}`,
-      targetService
-    )
-    if (paginationInfo.hasNext) {
-      await this.nextPagination(uri, lastPage, targetService)
+    const lastPage = prevLastPage + PAGINATION_NUM
+    //console.log(`[vtecxnext getPageWithPagination - nextPagination] firstPage=${firstPage} lastPage=${lastPage}`)
+    try {
+      const paginationInfo = await this.pagination(
+        uri,
+        `${String(firstPage)},${String(lastPage)}`,
+        targetService
+      )
+      if (paginationInfo.hasNext) {
+        await this.nextPagination(uri, lastPage, targetService)
+      }
+    } catch (e) {
+      // Do nothing.
+      //if (isVtecxNextError(e)) {
+        //console.log(`[vtecxnext getPageWithPagination - nextPagination] status=${e.status} message=${e.message}`)
+      //} else {
+        //console.log(`[vtecxnext getPageWithPagination - nextPagination] Error occured. ${e}`)
+      //}
     }
   }
 
