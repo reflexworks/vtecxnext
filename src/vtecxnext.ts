@@ -430,6 +430,8 @@ export class VtecxNext {
     }
     // vte.cxからのset-cookieを転記
     this.setCookie(response)
+    // 引き続きAPIで処理を行う場合のため、set-cookie情報を保持しておく
+    this.setLoginCookie(response)
     const data = await response.json()
     return { status: response.status, message: data.feed.title }
   }
@@ -461,6 +463,8 @@ export class VtecxNext {
     }
     // vte.cxからのset-cookieを転記
     this.setCookie(response)
+    // 引き続きAPIで処理を行う場合のため、set-cookie情報を保持しておく
+    this.setLoginCookie(response)
     const data = await response.json()
     return { status: response.status, message: data.feed.title }
   }
