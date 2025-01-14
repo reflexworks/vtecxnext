@@ -55,6 +55,11 @@ export type PaginationInfo = {
   isMemorysort: boolean
 }
 
+export type ContentSignedUrl = {
+  url: string
+  key: string
+}
+
 export class VtecxNext {
   /** Request */
   readonly req: NextRequest | undefined
@@ -3521,7 +3526,7 @@ export class VtecxNext {
    * @param filename attachment file name
    * @return message
    */
-  getSignedUrlToPutContent = async (uri: string, filename?: string): Promise<any> => {
+  getSignedUrlToPutContent = async (uri: string, filename?: string): Promise<ContentSignedUrl> => {
     //console.log(`[vtecxnext getSignedUrlToPutContent] start. uri=${uri} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
     // キー入力値チェック
     checkUri(uri)
@@ -3544,7 +3549,11 @@ export class VtecxNext {
     this.setCookie(response)
     // レスポンスのエラーチェック
     await checkVtecxResponse(response)
-    return await getJson(response)
+    const resData = await getJson(response)
+    return {
+      url: resData.feed.title,
+      key: resData.feed.subtitle
+    }
   }
 
   /**
@@ -3557,7 +3566,7 @@ export class VtecxNext {
     parenturi: string,
     extension?: string,
     filename?: string
-  ): Promise<any> => {
+  ): Promise<ContentSignedUrl> => {
     //console.log(`[vtecxnext getSignedUrlToPostContent] start. parenturi=${parenturi} content-type:${req.headers['content-type']} content-length:${req.headers['content-length']}`)
     // キー入力値チェック
     checkUri(parenturi)
@@ -3580,7 +3589,11 @@ export class VtecxNext {
     this.setCookie(response)
     // レスポンスのエラーチェック
     await checkVtecxResponse(response)
-    return await getJson(response)
+    const resData = await getJson(response)
+    return {
+      url: resData.feed.title,
+      key: resData.feed.subtitle
+    }
   }
 
   /**
@@ -3588,7 +3601,7 @@ export class VtecxNext {
    * @param uri key
    * @return message
    */
-  getSignedUrlToGetContent = async (uri: string): Promise<any> => {
+  getSignedUrlToGetContent = async (uri: string): Promise<ContentSignedUrl> => {
     //console.log(`[vtecxnext getSignedUrlToGetContent] start. uri=${uri}`)
     // キー入力値チェック
     checkUri(uri)
@@ -3606,7 +3619,11 @@ export class VtecxNext {
     this.setCookie(response)
     // レスポンスのエラーチェック
     await checkVtecxResponse(response)
-    return await getJson(response)
+    const resData = await getJson(response)
+    return {
+      url: resData.feed.title,
+      key: resData.feed.subtitle
+    }
   }
 
   /**
