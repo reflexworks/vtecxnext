@@ -785,6 +785,85 @@ export class VtecxNext {
   }
 
   /**
+   * delete entries
+   * @param feed feed
+   * @param isbulk Forcibly execute even if it exceeds the upper limit of entries of request feed.
+   * @param parallel Execute parallel if this param is true. Valid only if 'isbulk' is true.
+   * @param async Execute asynchronous if this param is true. Valid only if 'isbulk' is true.
+   * @param targetService target service name (for service linkage)
+   * @return true if successful
+   */
+  deleteEntries = async (
+    feed: any,
+    isbulk?: boolean,
+    parallel?: boolean,
+    async?: boolean,
+    targetService?: string
+  ): Promise<boolean> => {
+    //console.log(`[vtecxnext deleteEntries] start.`)
+    // 入力チェック
+    checkNotNull(feed, 'Feed')
+    // キー入力値チェック
+    for (const entry of feed) {
+      if (!entry.link || !Array.isArray(entry.link)) {
+        throw new VtecxNextError(400, `Key is required.`)
+      }
+      let existKey:boolean = false
+      for (const link of entry.link) {
+        if (link.___rel === 'self') {
+          checkUri(link.___href)
+          existKey = true
+        }
+      }
+      if (!existKey) {
+        throw new VtecxNextError(400, `Key is required.`)
+      }
+    }
+    // IDに削除オプションを追加
+    const paramDelete = '?_delete'
+    const paramDelete2 = '&_delete'
+    const reqFeed:any[] = [...feed]
+    for (const entry of reqFeed) {
+      let id:string
+      if (!entry.id) {
+        id = paramDelete
+      } else if (entry.id.indexOf(paramDelete) >= 0 ||
+          entry.id.indexOf(paramDelete2) >= 0) {
+        id = entry.id
+      } else {
+        if (entry.id.indexOf('?') >= 0) {
+          id = `${entry.id}${paramDelete2}`
+        } else {
+          id = `${entry.id}${paramDelete}`
+        }
+      }
+      entry.id = id
+    }
+
+    //console.log(`[vtecxnext deleteEntries] reqFeed = ${JSON.stringify(reqFeed)}`)
+
+    // vte.cxへリクエスト
+    const method = 'PUT'
+    let additionalParam = ''
+    if (isbulk) {
+      additionalParam = (parallel ? '&_bulk' : '&_bulkserial') + (async ? '&_async' : '')
+    }
+    const url = `${SERVLETPATH_PROVIDER}/?e${additionalParam}`
+    let response: Response
+    try {
+      response = await this.requestVtecx(method, url, JSON.stringify(reqFeed), null, targetService)
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext deleteEntries] response. status=${response.status}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    return true
+  }
+
+  /**
    * delete folder
    * @param uri parent key
    * @param async execute async
