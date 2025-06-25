@@ -1797,9 +1797,10 @@ export class VtecxNext {
    * @param feed entries (JSON)
    * @param uri parent key if not specified in entry
    * @param tablenames key:entity's prop name, value:BigQuery table name
+   * @param async execute async
    * @return registed entries
    */
-  postBDBQ = async (feed: any, uri?: string, tablenames?: any): Promise<any> => {
+  postBDBQ = async (feed: any, uri?: string, tablenames?: any, async?: boolean): Promise<any> => {
     //console.log(`[vtecxnext postBQ] start. async=${async} feed=${feed}`)
     // 入力チェック
     checkNotNull(feed, 'Feed')
@@ -1817,7 +1818,7 @@ export class VtecxNext {
     }
     // vte.cxへリクエスト
     const method = 'POST'
-    const url = `${SERVLETPATH_PROVIDER}${uri ? uri : '/'}?_bdbq`
+    const url = `${SERVLETPATH_PROVIDER}${uri ? uri : '/'}?_bdbq${async ? '&_async' : ''}`
     let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(reqFeed))
@@ -1837,9 +1838,11 @@ export class VtecxNext {
    * @param feed entries (JSON)
    * @param uri parent key if not specified in entry
    * @param tablenames key:entity's prop name, value:BigQuery table name
+   * @param async execute async
+   * @param isbulk Forcibly execute even if it exceeds the upper limit of entries of request feed.
    * @return true if successful
    */
-  putBDBQ = async (feed: any, uri?: string, tablenames?: any): Promise<any> => {
+  putBDBQ = async (feed: any, uri?: string, tablenames?: any, async?: boolean, isbulk?: boolean): Promise<any> => {
     //console.log(`[vtecxnext putBDBQ] start. feed=${feed}`)
     // 入力チェック
     checkNotNull(feed, 'Feed')
@@ -1858,7 +1861,7 @@ export class VtecxNext {
     }
     // vte.cxへリクエスト
     const method = 'PUT'
-    const url = `${SERVLETPATH_PROVIDER}${uri ? uri : '/'}?_bdbq`
+    const url = `${SERVLETPATH_PROVIDER}${uri ? uri : '/'}?_bdbq${async ? '&_async' : ''}${isbulk ? '&_bulk' : ''}`
     let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(reqFeed))
@@ -1877,9 +1880,10 @@ export class VtecxNext {
    * delete data from bdb and bigquery
    * @param keys delete keys
    * @param tablenames key:entity's prop name, value:BigQuery table name
+   * @param async execute async
    * @return true if successful
    */
-  deleteBDBQ = async (keys: string[], tablenames?: any): Promise<boolean> => {
+  deleteBDBQ = async (keys: string[], tablenames?: any, async?: boolean): Promise<boolean> => {
     //console.log(`[vtecxnext deleteBDBQ] start. keys=${keys}`)
     // 入力チェック
     checkNotNull(keys, 'Key')
@@ -1901,7 +1905,7 @@ export class VtecxNext {
     //console.log(`[vtecxnext deleteBDBQ] feed=${feed}`)
     // vte.cxへリクエスト
     const method = 'DELETE'
-    const url = `${SERVLETPATH_PROVIDER}/?_bdbq`
+    const url = `${SERVLETPATH_PROVIDER}/?_bdbq${async ? '&_async' : ''}`
     let response: Response
     try {
       response = await this.requestVtecx(method, url, JSON.stringify(feed))

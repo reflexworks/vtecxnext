@@ -1,6 +1,6 @@
 {
   "name": "@vtecx/vtecxnext",
-  "version": "2.2.21",
+  "version": "2.2.22",
   "description": "vte.cx Next.js api",
   "main": "dist/index.js",
   "files": [
@@ -22,13 +22,13 @@
   },
   "homepage": "https://github.com/reflexworks/vtecxnext#readme",
   "devDependencies": {
-    "@types/node": "^22.15.29",
+    "@types/node": "^24.0.4",
     "@types/sqlstring": "^2.3.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "next": "^15.3.3",
+    "next": "^15.3.4",
     "sqlstring": "^2.3.3"
   }
 }
