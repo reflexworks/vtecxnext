@@ -25,38 +25,56 @@ const PAGINATION_NUM = 7
 const MEMORYSORT = 'memorysort'
 
 export type StatusMessage = {
+  // statud
   status: number
+  // message
   message: string
 }
 
 export type AdduserInfo = {
+  // user name
   username?: string
+  // password
   pswd?: string
+  // nickname
   nickname?: string
+  // email subject
   emailSubject?: string
+  // email text message
   emailText?: string
+  // email html message
   emailHtml?: string
 }
 
 export type ChangepassByAdminInfo = {
+  // uid
   uid: string
+  // password
   pswd: string
 }
 
 export type CreateGroupadminInfo = {
+  // group name
   group: string
+  // uid list
   uids: string[]
 }
 
 export type PaginationInfo = {
+  // last page number
   lastPageNumber: number
+  // count with range
   countWithinRange: number
+  // true if it has next page
   hasNext: boolean
+  // true if it has sorted in memory
   isMemorysort: boolean
 }
 
 export type ContentSignedUrl = {
+  // url
   url: string
+  // key
   key: string
 }
 
