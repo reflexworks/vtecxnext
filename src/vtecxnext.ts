@@ -2025,6 +2025,7 @@ export class VtecxNext {
    * @param values values of query arguments
    * @param async execute async
    * @param isbulk execute with autocommit
+   * @return message
    */
   execRDB = async (
     sqls: string[],
@@ -2088,7 +2089,6 @@ export class VtecxNext {
     const resData = await response.blob()
     this.setResponseHeaders(response)
     this.bufferData = await resData.arrayBuffer()
-    //res.end(new Uint8Array(pdfData))
     return true
   }
 
@@ -2713,7 +2713,7 @@ export class VtecxNext {
    * add user
    * @param adduserInfo adduser infomation
    * @param reCaptchaToken reCAPTCHA token
-   * @return message feed
+   * @return message feed (uid)
    */
   adduser = async (adduserInfo: AdduserInfo, reCaptchaToken: string): Promise<any> => {
     //console.log(`[vtecxnext adduser] start. feed=${feed}`)
@@ -2766,7 +2766,6 @@ export class VtecxNext {
    * @param feed entries (JSON)
    * @return message feed
    */
-  //adduserByAdmin = async (feed:any): Promise<any> => {
   adduserByAdmin = async (adduserInfos: AdduserInfo[]): Promise<any> => {
     //console.log(`[vtecxnext adduserByAdmin] start. feed=${feed}`)
     // 入力チェック
