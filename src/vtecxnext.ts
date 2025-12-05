@@ -23,6 +23,8 @@ const HEADER_NEXTPAGE = 'x-vtecx-nextpage'
 const PAGINATION_NUM = 7
 /** pagination memorysort */
 const MEMORYSORT = 'memorysort'
+/** parameter : nextpage */
+const PARAM_NEXTPAGE = 'p'
 
 export type StatusMessage = {
   // statud
@@ -655,11 +657,35 @@ export class VtecxNext {
    * @return count
    */
   count = async (uri: string, targetService?: string): Promise<number | null> => {
-    //console.log('[vtecxnext count] start.')
-    const vtecxRes: VtecxResponse = await this.countResponse(uri, targetService)
-    // 戻り値
-    const data = vtecxRes.data
-    return vtecxRes.data.feed.title ? Number(data.feed.title) : null
+    //console.log(`[vtecxnext count] start. uri=${uri}`)
+    let cnt:number = 0
+    let noRepeat:boolean = false
+    let nextpage:string = ''
+    const params = getParamMap(uri)
+    if (params[PARAM_NEXTPAGE]) {
+      noRepeat = true
+    }
+    do {
+      const editedUri = noRepeat ? uri : addNextpage(uri, nextpage)
+      //console.log(`[vtecxnext count] editedUri=${editedUri}`)
+      nextpage = ''
+      const vtecxRes: VtecxResponse = await this.countResponse(editedUri, targetService)
+      if (vtecxRes.status === 200) {
+        const data = vtecxRes.data
+        if (!data?.feed?.title) {
+          if (!cnt) {
+            return null
+          }
+        } else {
+          cnt += Number(data.feed.title)
+        }
+        if (vtecxRes.header.hasOwnProperty(HEADER_NEXTPAGE)) {
+          nextpage = vtecxRes.header[HEADER_NEXTPAGE]
+          //console.log(`[vtecxnext count] ${HEADER_NEXTPAGE}=${nextpage}`)
+        }
+      }
+    } while (!noRepeat && nextpage)
+    return cnt
   }
 
   /**
@@ -4758,4 +4784,53 @@ const createURLSearchParams = (data: any) => {
   const params = new URLSearchParams()
   Object.keys(data).forEach((key) => params.append(key, data[key]))
   return params
+}
+
+/**
+ * URIのパラメータ部分を連想配列にして返却
+ * @param uri URI
+ * @returns パラメータを連想配列にしたオブジェクト
+ */
+const getParamMap = (uri:string): {[name:string]: string} => {
+  if (!uri) {
+    return {}
+  }
+  const idxQ = uri.indexOf('?')
+  if (idxQ < 0) {
+    return {}
+  }
+  const paramStr = uri.substring(idxQ + 1)
+  if (!paramStr) {
+    return {}
+  }
+  const params:{[name:string]: string} = {}
+  const paramStrParts = paramStr.split('&')
+  for (const paramStrPart of paramStrParts) {
+    let name:string = ''
+    let value:string = ''
+    const idxE = paramStrPart.indexOf('=')
+    if (idxE < 0) {
+      name = paramStrPart
+    } else {
+      name = paramStrPart.substring(0, idxE)
+      value = paramStrPart.substring(idxE + 1)
+    }
+    params[name] = value
+  }
+  return params
+}
+
+/**
+ * URIにカーソルを付加
+ * @param uri URI
+ * @param nextpage カーソル 
+ * @returns URIにカーソルを付加した文字列
+ */
+const addNextpage = (uri:string, nextpage:string):string => {
+  if (nextpage) {
+    const rchar = uri.indexOf('?') < 0 ? '?' : '&'
+    return `${uri}${rchar}${PARAM_NEXTPAGE}=${nextpage}`
+  } else {
+    return uri
+  }
 }
