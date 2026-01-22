@@ -842,7 +842,7 @@ export class VtecxNext {
    * @param targetService target service name (for service linkage)
    * @return registed entries
    */
-  post = async (feed: Entry[], uri?: string, targetService?: string): Promise<MessageResponse> => {
+  post = async (feed: Entry[], uri?: string, targetService?: string): Promise<Entry[]|MessageResponse> => {
     //console.log(`[vtecxnext post] start. feed=${feed}`)
     // 入力チェック
     checkNotNull(feed, 'Feed')
