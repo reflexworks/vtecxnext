@@ -2722,9 +2722,9 @@ export class VtecxNext {
    * leave group by admin
    * @param uids uid list
    * @param group group
-   * @return feed
+   * @return feed of the group you left
    */
-  leaveGroupByAdmin = async (uids: string[], group: string): Promise<Entry> => {
+  leaveGroupByAdmin = async (uids: string[], group: string): Promise<Entry[]> => {
     //console.log(`[vtecxnext leaveGroupByAdmin] start. group=${group} uids=${uids}`)
     // 入力チェック
     checkUri(group, 'group key')
