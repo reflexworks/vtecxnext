@@ -612,7 +612,7 @@ export class VtecxNext {
   logout = async (): Promise<StatusMessage> => {
     //console.log('[vtecxnext logout] start.')
     // vte.cxへリクエスト
-    const method = 'GET'
+    const method = 'POST'
     const url = '/d/?_logout'
     let response: Response
     try {
