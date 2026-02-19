@@ -170,6 +170,11 @@ export interface OAuthUserInfo {
   state?: string|string[]
 }
 
+export interface IndexInfo {
+  uri?: string
+  fields?: string[]
+}
+
 /**
  * vtecxnext.
  * Executes various operations for the vte.cx service.
@@ -4132,6 +4137,101 @@ export class VtecxNext {
     }
     const data = await getJson(response)
     return data.feed.title
+  }
+
+  /**
+   * update index.
+   * for service admin function
+   * @param indexInfos update index information
+   */
+  updateIndex = async (indexInfos: IndexInfo[]): Promise<void> => {
+    //console.log('[vtecxnext updateIndex] start.')
+    const feed = this.convertIndexInfoToEntries(indexInfos)
+    // vte.cxへリクエスト
+    const method = 'PUT'
+    const url = `${SERVLETPATH_DATA}/?_updateindex`
+    let response: Response
+    try {
+      response = await this.requestVtecx(method, url, JSON.stringify(feed))
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext updateIndex] response=${response}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    // 戻り値
+    return await getJson(response)
+  }
+
+  /**
+   * delete index.
+   * for service admin function
+   * @param indexInfos delete index information
+   */
+  deleteIndex = async (indexInfos: IndexInfo[]): Promise<void> => {
+    //console.log('[vtecxnext deleteIndex] start.')
+    const feed = this.convertIndexInfoToEntries(indexInfos)
+    // vte.cxへリクエスト
+    const method = 'PUT'
+    const url = `${SERVLETPATH_DATA}/?_deleteindex`
+    let response: Response
+    try {
+      response = await this.requestVtecx(method, url, JSON.stringify(feed))
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext deleteIndex] response=${response}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    // 戻り値
+    return await getJson(response)
+  }
+
+  /**
+   * convert index informations to argument entry
+   * @param indexInfos index informations
+   * @returns feed
+   */
+  private convertIndexInfoToEntries = (indexInfos:IndexInfo[]): Entry[] => {
+    const retFeed:Entry[] = []
+    for (const indexInfo of indexInfos) {
+      const title = this.convertIndexFields(indexInfo.fields)
+      const retEntry:Entry = {
+        link: [
+          {
+            ___rel: 'self',
+            ___href: indexInfo.uri
+          }
+        ],
+        title: title
+      }
+      retFeed.push(retEntry)
+    }
+    return retFeed
+  }
+
+
+  /**
+   * convert index fields to comma-separated string
+   * @param fields index fields
+   * @returns comma-separated string
+   */
+  private convertIndexFields = (fields:string[]|undefined): string|undefined => {
+    if (fields && fields.length) {
+      let title:string = ''
+      for (const field of fields) {
+        if (title) {
+          title += ','
+        }
+        title += fields
+      }
+      return title
+    }
+    return undefined
   }
 
   //----------------------
