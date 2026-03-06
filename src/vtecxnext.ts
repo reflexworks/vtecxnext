@@ -400,7 +400,7 @@ export class VtecxNext {
     //console.log('[vtecxnext now] start.')
     // vte.cxへリクエスト
     const method = 'GET'
-    const url = '/d/?_now'
+    const url = `${SERVLETPATH_DATA}/?_now`
     let response: Response
     try {
       response = await this.requestVtecx(method, url)
@@ -423,7 +423,7 @@ export class VtecxNext {
     //console.log('[vtecxnext uid] start.')
     // vte.cxへリクエスト
     const method = 'GET'
-    const url = '/d/?_uid'
+    const url = `${SERVLETPATH_DATA}/?_uid`
     let response: Response
     try {
       response = await this.requestVtecx(method, url)
@@ -448,7 +448,7 @@ export class VtecxNext {
     //console.log('[vtecxnext account] start.')
     // vte.cxへリクエスト
     const method = 'GET'
-    const url = '/d/?_account'
+    const url = `${SERVLETPATH_DATA}/?_account`
     let response: Response
     try {
       response = await this.requestVtecx(method, url)
@@ -474,7 +474,7 @@ export class VtecxNext {
     //console.log('[vtecxnext service] start.')
     // vte.cxへリクエスト
     const method = 'GET'
-    const url = '/d/?_service'
+    const url = `${SERVLETPATH_DATA}/?_service`
     let response: Response
     try {
       response = await this.requestVtecx(method, url)
@@ -499,7 +499,7 @@ export class VtecxNext {
     //console.log('[vtecxnext rxid] start.')
     // vte.cxへリクエスト
     const method = 'GET'
-    const url = '/d/?_getrxid'
+    const url = `${SERVLETPATH_DATA}/?_getrxid`
     let response: Response
     try {
       response = await this.requestVtecx(method, url)
@@ -618,7 +618,7 @@ export class VtecxNext {
     //console.log('[vtecxnext logout] start.')
     // vte.cxへリクエスト
     const method = 'POST'
-    const url = '/d/?_logout'
+    const url = `${SERVLETPATH_DATA}/?_logout`
     let response: Response
     try {
       response = await this.requestVtecx(method, url)
@@ -646,7 +646,7 @@ export class VtecxNext {
     //console.log('[vtecxnext whoami] start.')
     // vte.cxへリクエスト
     const method = 'GET'
-    const url = '/d/?_whoami'
+    const url = `${SERVLETPATH_DATA}/?_whoami`
     let response: Response
     try {
       response = await this.requestVtecx(method, url)
@@ -4192,6 +4192,62 @@ export class VtecxNext {
   }
 
   /**
+   * get access count
+   * @return access count
+   */
+  accesscount = async (): Promise<number> => {
+    //console.log('[vtecxnext accesscount] start.')
+    // vte.cxへリクエスト
+    const method = 'GET'
+    const url = `${SERVLETPATH_DATA}/?_accesscount`
+    let response: Response
+    try {
+      response = await this.requestVtecx(method, url)
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext accesscount] response=${response}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    // 戻り値
+    const data = await getJson(response)
+    if (isIntegerString(data.feed.title)) {
+      return Number(data.feed.title)
+    }
+    return 0
+  }
+
+  /**
+   * get storage usage
+   * @return storage usage
+   */
+  storageusage = async (): Promise<number> => {
+    //console.log('[vtecxnext storageusage] start.')
+    // vte.cxへリクエスト
+    const method = 'GET'
+    const url = `${SERVLETPATH_DATA}/?_storageusage`
+    let response: Response
+    try {
+      response = await this.requestVtecx(method, url)
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext storageusage] response=${response}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    // 戻り値
+    const data = await getJson(response)
+    if (isIntegerString(data.feed.title)) {
+      return Number(data.feed.title)
+    }
+    return 0
+  }
+
+  /**
    * convert index informations to argument entry
    * @param indexInfos index informations
    * @returns feed
@@ -4894,6 +4950,13 @@ const isBlank = (val: any): boolean => {
   }
   return false
 }
+
+/**
+ * 文字列の数字判定
+ * @param s 文字列
+ * @returns 文字列が数字であればtrue
+ */
+const isIntegerString = (s: string) => /^[0-9]+$/.test(s)
 
 /**
  * vte.cxからのレスポンスが正常かエラーかをチェックする。
