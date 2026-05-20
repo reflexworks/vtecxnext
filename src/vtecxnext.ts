@@ -200,6 +200,8 @@ export class VtecxNext {
   private bufferData: ArrayBuffer | null = null
   /** Access Token (for batch) */
   private accessToken: string | undefined
+  /** Whether or not to use accesstoken (for batch) */
+  private useAccessToken: boolean | undefined
   /** login cookies */
   private loginCookies: any = {}
   /** next cookies (for server action) */
@@ -219,6 +221,32 @@ export class VtecxNext {
     } else {
       this.req = undefined
       this.accessToken = accessToken
+      this.useAccessToken = true
+    }
+  }
+
+  /**
+   * Initial processing for batch.
+   */
+  init = async (): Promise<void> => {
+    //console.log(`[vtecxnext init] start.`)
+    if (this.accessToken && this.useAccessToken) {
+      // vte.cxへリクエスト
+      const method = 'POST'
+      const url = `${SERVLETPATH_DATA}/?_createsession`
+      let response: Response
+      try {
+        response = await this.requestVtecx(method, url)
+      } catch (e) {
+        throw newFetchError(e, true)
+      }
+      //console.log(`[vtecxnext init] response. status=${response.status}`)
+      // vte.cxからのset-cookieを転記
+      this.setCookie(response)
+      // レスポンスのエラーチェック
+      await checkVtecxResponse(response)
+      // 以降アクセストークンは使用しない
+      this.useAccessToken = false
     }
   }
 
@@ -4314,8 +4342,8 @@ export class VtecxNext {
     const cookie = await this.editRequestCookie()
     //console.log(`[requestVtecx] cookie = ${cookie}`)
     const headers: any = cookie ? { Cookie: cookie } : {}
-    if (this.accessToken) {
-      headers.Authorization = `Token ${this.accessToken}`
+    if (this.accessToken && this.useAccessToken) {
+      headers.Authorization = `Bearer ${this.accessToken}`
     }
     if (additionalHeaders) {
       //console.log(`[vtecxnext requestVtecx] additionalHeaders for`)
