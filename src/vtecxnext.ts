@@ -206,23 +206,34 @@ export class VtecxNext {
   private loginCookies: any = {}
   /** next cookies (for server action) */
   private cookieStore: any  // ReadonlyRequestCookies
+  /** Whether server action cookies() should be used */
+  private useCookieStore: boolean = false
   /** flag whether the next cookies should be created */
-  private shouldBeCreatedCookieStore: boolean = true
+  private shouldBeCreatedCookieStore: boolean = false
 
   /**
    * constructor
    * @param req Request (for api)
    * @param accessToken Access token (for batch)
    */
-  constructor(req?: NextRequest, accessToken?: string) {
-    if (req) {
-      this.req = req
-      this.shouldBeCreatedCookieStore = false
-    } else {
+  constructor(req?: NextRequest, accessToken?: string)
+  constructor(accessToken?: string)
+  constructor(reqOrAccessToken?: NextRequest | string, accessToken?: string) {
+    if (typeof reqOrAccessToken === 'string') {
       this.req = undefined
-      this.accessToken = accessToken
+      this.accessToken = reqOrAccessToken
       this.useAccessToken = true
+      return
     }
+    if (reqOrAccessToken) {
+      this.req = reqOrAccessToken
+      return
+    }
+    this.req = undefined
+    this.accessToken = accessToken
+    this.useAccessToken = accessToken ? true : undefined
+    this.useCookieStore = true
+    this.shouldBeCreatedCookieStore = true
   }
 
   /**
@@ -243,6 +254,8 @@ export class VtecxNext {
       //console.log(`[vtecxnext init] response. status=${response.status}`)
       // vte.cxからのset-cookieを転記
       this.setCookie(response)
+      // バッチ実行用にセッションCookieを保持する
+      this.setLoginCookie(response)
       // レスポンスのエラーチェック
       await checkVtecxResponse(response)
       // 以降アクセストークンは使用しない
@@ -4440,12 +4453,18 @@ export class VtecxNext {
    */
   private setLoginCookie = (response: Response): void => {
     // set-cookieの値をレスポンスヘッダ格納変数にセット
-    let setCookieVal = response.headers.get('set-cookie')
+    const setCookieVal = response.headers.get('set-cookie')
     if (setCookieVal) {
-      const tmpCookies = setCookieVal.split(';')
-      for (const tmpCookie of tmpCookies) {
-        const tmpKeyVal = tmpCookie.split('=')
-        this.loginCookies[tmpKeyVal[0]] = tmpKeyVal[1]
+      for (const cookie of splitSetCookieHeader(setCookieVal)) {
+        const idx = cookie.indexOf('=')
+        if (idx <= 0) {
+          continue
+        }
+        const name = cookie.substring(0, idx).trim()
+        const value = cookie.substring(idx + 1).trim()
+        if (name) {
+          this.loginCookies[name] = value
+        }
       }
     }
   }
@@ -4472,7 +4491,7 @@ export class VtecxNext {
         }
       }
     } else {
-      if (this.shouldBeCreatedCookieStore) {
+      if (this.useCookieStore && this.shouldBeCreatedCookieStore) {
         //console.log(`[editRequestCookie] shouldBeCreatedCookieStore === true`)
         try {
           this.cookieStore = await cookies()
@@ -4482,7 +4501,7 @@ export class VtecxNext {
         }
         this.shouldBeCreatedCookieStore = false
       }
-      if (this.cookieStore) {
+      if (this.useCookieStore && this.cookieStore) {
         //console.log(`[editRequestCookie] this.cookieStore === true. ${JSON.stringify(this.cookieStore)}`)
         // server action用
         const cookieArray = this.cookieStore.getAll()
@@ -5207,6 +5226,41 @@ const createURLSearchParams = (data: any) => {
   const params = new URLSearchParams()
   Object.keys(data).forEach((key) => params.append(key, data[key]))
   return params
+}
+
+/**
+ * set-cookie header から Cookie 名と値だけを抽出する。
+ * @param setCookieVal set-cookie header value
+ * @returns cookie pair list
+ */
+const splitSetCookieHeader = (setCookieVal: string): string[] => {
+  const cookies: string[] = []
+  let current = ''
+  let inExpires = false
+  for (let i = 0; i < setCookieVal.length; i++) {
+    const char = setCookieVal[i]
+    if (!inExpires && setCookieVal.substring(i, i + 8).toLowerCase() === 'expires=') {
+      inExpires = true
+    }
+    if (char === ',' && !inExpires) {
+      if (current) {
+        cookies.push(current)
+      }
+      current = ''
+      continue
+    }
+    current += char
+    if (inExpires && char === ';') {
+      inExpires = false
+    }
+  }
+  if (current) {
+    cookies.push(current)
+  }
+  return cookies.map((cookie) => {
+    const firstPart = cookie.split(';')[0]
+    return firstPart.trim()
+  }).filter((cookie) => cookie.length > 0)
 }
 
 /**
