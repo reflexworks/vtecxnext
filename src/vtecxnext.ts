@@ -4289,6 +4289,34 @@ export class VtecxNext {
   }
 
   /**
+   * get batchjob execute time
+   * @return batchjob execute time
+   */
+  batchjobexectime = async (): Promise<number> => {
+    //console.log('[vtecxnext batchjobexectime] start.')
+    // vte.cxへリクエスト
+    const method = 'GET'
+    const url = `${SERVLETPATH_DATA}/?_batchjobexectime`
+    let response: Response
+    try {
+      response = await this.requestVtecx(method, url)
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext batchjobexectime] response=${response}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    // 戻り値
+    const data = await getJson(response)
+    if (isIntegerString(data.feed.title)) {
+      return Number(data.feed.title)
+    }
+    return 0
+  }
+
+  /**
    * convert index informations to argument entry
    * @param indexInfos index informations
    * @returns feed
