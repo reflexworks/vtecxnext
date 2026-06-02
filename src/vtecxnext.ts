@@ -2284,6 +2284,35 @@ export class VtecxNext {
   }
 
   /**
+   * Create PDF and put content.
+   * @param uri key
+   * @param bysize true if registering with specified size
+   * @param filename attachment file name
+   * @param arrayBuffer content (for batch or server action)
+   * @return message
+   */
+  putPdf = async (uri: string, htmlTemplate: string): Promise<Entry[]> => {
+    //console.log(`[vtecxnext putPdf] start. uri=${uri}`)
+    // キー入力値チェック
+    checkUri(uri)
+    // vte.cxへリクエスト
+    const method = 'PUT'
+    const url = `${SERVLETPATH_PROVIDER}${uri}?_pdf&_content`
+    let response: Response
+    try {
+      response = await this.requestVtecx(method, url, htmlTemplate)
+    } catch (e) {
+      throw newFetchError(e, true)
+    }
+    //console.log(`[vtecxnext putPdf] response. status=${response.status}`)
+    // vte.cxからのset-cookieを転記
+    this.setCookie(response)
+    // レスポンスのエラーチェック
+    await checkVtecxResponse(response)
+    return await getJson(response)
+  }
+
+  /**
    * put the signature of uri and revision.
    * @param uri key
    * @param revision revision

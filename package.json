@@ -1,6 +1,6 @@
 {
   "name": "@vtecx/vtecxnext",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "description": "vte.cx Next.js api",
   "main": "dist/index.js",
   "files": [
@@ -28,7 +28,7 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "next": "^16.2.6",
+    "next": "^16.2.7",
     "sqlstring": "^2.3.3"
   }
 }
