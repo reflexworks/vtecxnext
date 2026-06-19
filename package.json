@@ -21,14 +21,16 @@
     "url": "https://github.com/reflexworks/vtecxnext/issues"
   },
   "homepage": "https://github.com/reflexworks/vtecxnext#readme",
+  "dependencies": {
+    "sqlstring": "^2.3.3"
+  },
+  "peerDependencies": {
+    "next": "^16.0.0"
+  },
   "devDependencies": {
     "@types/node": "^25.9.1",
     "@types/sqlstring": "^2.3.2",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
-  },
-  "dependencies": {
-    "next": "^16.2.7",
-    "sqlstring": "^2.3.3"
   }
 }
